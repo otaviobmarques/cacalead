@@ -610,6 +610,7 @@ async function boot() {
     st.hunts.forEach(h => S.hunts.set(h.id, h)); st.leads.forEach(l => S.leads.set(l.key, l)); (st.sweeps || []).forEach(x => S.sweeps.set(x.id, x)); S.pipeline = st.pipeline;
     loadWa();
     if (st.cloud) $('#logout').hidden = false;
+    if (st.cloud && !st.claude) $('#aiDot').parentElement.hidden = true;  // sem Claude na nuvem: um ponto vermelho pareceria erro
     setEngine(st.engine); $('#aiDot').className = 'dot ' + (st.claude ? 'on' : 'off');
     const run = st.hunts.find(h => h.status === 'rodando'); if (run) S.hunt = String(run.id);
   } catch (e) { toast('Servidor do CaçaLead não respondeu'); }

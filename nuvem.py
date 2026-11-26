@@ -22,7 +22,8 @@ COOKIE = "__Host-garimpo"  # o prefixo obriga o navegador a exigir HTTPS e a pre
 SESSION_SECONDS = 14 * 86400
 WINDOW, PER_IP, OVERALL = 15 * 60, 5, 100  # tentativas erradas de senha a cada 15 minutos
 
-HEADERS = {"X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "same-origin",
+# Referrer-Policy: o mapa do OpenStreetMap bloqueia quem não informa de qual site vem. Assim vai só o domínio, nunca o caminho.
+HEADERS = {"X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "strict-origin-when-cross-origin",
            "Strict-Transport-Security": "max-age=31536000"}
 
 _key = b""

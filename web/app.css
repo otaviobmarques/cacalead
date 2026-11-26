@@ -540,3 +540,24 @@ nav.tabs,.seg,.box,.search,.tg,.bpick,.btn-ghost,.pill,.select-hunt,.fchip,nav.t
   .why div{grid-template-columns:1fr 60px 34px}.cta{grid-template-columns:repeat(2,1fr)}.row{flex-wrap:wrap}
 }
 .wacard .wastats{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
+
+/* ───── topo e coluna esquerda em telas de notebook ───── */
+.pill[hidden]{display:none}
+@media (min-width:901px){
+  .app{grid-template-rows:auto minmax(0,1fr)}
+  header{flex-wrap:wrap;row-gap:8px;min-height:64px;padding-block:8px}
+  nav.tabs{flex:none}
+  .hright{flex-wrap:wrap;justify-content:flex-end}
+  .app>aside.col:not(.right){overflow-y:auto}
+  .hunt{flex:none}
+  .history{flex:1 0 210px}
+}
+@media (min-width:901px) and (max-width:1600px){
+  header{column-gap:10px}
+  .brand img{width:160px;padding:4px 8px}
+  nav.tabs{gap:2px}
+  nav.tabs button{padding:7px 8px;gap:5px;font-size:12px}
+  .hright{gap:5px}
+  .hright .pill,.hright .btn-ghost{padding:7px 8px}
+  .select-hunt{max-width:108px;padding:7px 8px}
+}
