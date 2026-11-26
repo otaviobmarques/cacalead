@@ -816,7 +816,7 @@ document.addEventListener('click', async e => {
 const DAYS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
 function fmtTs(ts) { if (!ts) return ''; const d = new Date(ts); return isNaN(d) ? ts : d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
 function paintWaDot() { const st = S.wa?.state; $('#waDot').className = 'dot ' + (st === 'conectado' ? 'on' : st && st !== 'desconfigurado' ? 'off' : ''); }
-async function loadWa() { try { const r = await api('GET', '/api/wa'); S.queue = r.queue; delete r.queue; S.wa = r; paintWaDot(); if (S.view === 'wa') renderWa(true); if (!S.onboarded) { S.onboarded = true; onboard(); } } catch (e) {} }
+async function loadWa() { try { const r = await api('GET', '/api/wa'); S.queue = r.queue; delete r.queue; S.wa = r; paintWaDot(); if (S.view === 'wa') renderWa(true); } catch (e) {} }
 async function loadQueue() { try { const r = await api('GET', '/api/wa'); S.queue = r.queue; delete r.queue; S.wa = r; renderQueue(); renderWaStatus(); } catch (e) {} }
 let waFilled = false;
 function renderWa(force) {
@@ -900,6 +900,7 @@ $('#waToggle').onclick = async () => {
   toast(on ? '▶ Disparos ligados' : '■ Disparos pausados');
 };
 function prospectModal(list) {
+  if (S.wa && !S.wa.terms_ok) return showTerms(() => prospectModal(list));
   const ok = list.filter(l => l.intel.wa && !l.client && l.pipeline === 'novo' && !l.intel.closed && !(S.queue || []).some(q => q.key === l.key && ['fila', 'enviado'].includes(q.status)));
   const m = $('#modal'), w = S.wa, daily = w?.cfg?.daily || 30;
   if (!ok.length) { toast('Nenhum lead novo com WhatsApp (celular) nesse filtro'); return; }
@@ -945,6 +946,7 @@ $('#gwRecheck').onclick = async () => { S.wa = await api('POST', '/api/wa/test',
 let qrTimer = null;
 function closeQr() { clearTimeout(qrTimer); qrTimer = null; $('#modal').classList.remove('on'); }
 $('#gwConnect').onclick = () => {
+  if (S.wa && !S.wa.terms_ok) return showTerms(() => $('#gwConnect').click());
   const m = $('#modal');
   m.innerHTML = `<div class="box"><h2>📱 Conectar o WhatsApp</h2>
     <p>No celular: WhatsApp, Configurações, <b>Aparelhos conectados</b>, <b>Conectar um aparelho</b>.</p>
@@ -980,9 +982,10 @@ async function pollConn() {
 }
 
 
-/* ───────── primeira execução: aviso importante e conexão do WhatsApp ───────── */
-function showTerms() {
+/* ───────── aviso importante: só aparece quando a pessoa escolhe usar o WhatsApp ───────── */
+function showTerms(then) {
   const m = $('#modal');
+  m.onclick = null;
   m.innerHTML = `<div class="box" style="max-height:88vh;overflow:auto"><h2>⚖️ Aviso importante</h2>
     <p>O CaçaLead é um software livre, entregue <b>como está, sem garantia</b>. Leia antes de usar:</p>
     <ul class="terms">
@@ -1000,13 +1003,8 @@ function showTerms() {
   $('#termsOk').onclick = async () => {
     await api('POST', '/api/terms', { accept: true });
     S.wa = Object.assign(await api('GET', '/api/wa'), { queue: undefined }); m.classList.remove('on'); paintWaDot(); renderWa(true); toast('Aviso aceito');
-    onboard();
+    if (typeof then === 'function') then();  // segue com o que a pessoa tinha pedido
   };
-}
-function onboard() {
-  const w = S.wa; if (!w) return;
-  if (!w.terms_ok) return showTerms();
-  if (w.provider === 'gowa' && w.gowa && w.gowa.installed && !['conectado', 'conectando'].includes(w.state)) { setView('wa'); setTimeout(() => $('#gwConnect').click(), 500); }
 }
 
 

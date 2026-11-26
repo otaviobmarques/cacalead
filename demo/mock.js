@@ -102,7 +102,7 @@
       if (l.pipeline === 'novo') l.pipeline = 'contatado'; l.wa.out = now(); setTimeout(() => say('Demonstração: nenhuma mensagem foi enviada.'), 400); return l;
     }
     if (path === '/api/wa/test') return wa;
-    if (path === '/api/terms') return { terms_ok: true };
+    if (path === '/api/terms') return wa.terms_ok = true, { terms_ok: true };
     if (path.startsWith('/api/gowa/')) return [503, { error: 'Na demonstração o WhatsApp não é conectado.' }];
     return [404, { error: 'não disponível na demonstração' }];
   }
