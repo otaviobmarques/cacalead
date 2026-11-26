@@ -3,7 +3,8 @@
 Ligado só com GARIMPO_CLOUD=1 (o Dockerfile faz isso). No seu computador nada disto vale.
 Variáveis:
   GARIMPO_PASSWORD   a senha do painel (obrigatória, 12 caracteres ou mais)
-  GARIMPO_HOST       domínio próprio; sem ele vale o RAILWAY_PUBLIC_DOMAIN que o Railway preenche
+  GARIMPO_HOST       domínio próprio (ou vários, separados por vírgula; o primeiro é o principal, usado nos links).
+                     O RAILWAY_PUBLIC_DOMAIN, que o Railway preenche, também é aceito.
 """
 import base64, hashlib, hmac, html, os, secrets, threading, time
 
@@ -12,8 +13,10 @@ LOGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "logo.png
 ENABLED = os.environ.get("GARIMPO_CLOUD") == "1"
 PASSWORD = os.environ.get("GARIMPO_PASSWORD", "")
 MIN_PASSWORD = 12
-HOST = (os.environ.get("GARIMPO_HOST") or os.environ.get("RAILWAY_PUBLIC_DOMAIN") or "").strip().lower() if ENABLED else ""
-PUBLIC_URL = f"https://{HOST}" if HOST else ""
+_names = (os.environ.get("GARIMPO_HOST", "") + "," + os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")).split(",")
+HOSTS = list(dict.fromkeys(h.strip().lower() for h in _names if h.strip())) if ENABLED else []
+ORIGINS = [f"https://{h}" for h in HOSTS]
+PUBLIC_URL = ORIGINS[0] if ORIGINS else ""
 
 COOKIE = "__Host-garimpo"  # o prefixo obriga o navegador a exigir HTTPS e a prender o cookie a este domínio
 SESSION_SECONDS = 14 * 86400
@@ -48,7 +51,7 @@ def init(data_dir):
 
 
 def ready():
-    return bool(HOST) and len(PASSWORD) >= MIN_PASSWORD
+    return bool(HOSTS) and len(PASSWORD) >= MIN_PASSWORD
 
 
 def _sign(text):
@@ -129,6 +132,6 @@ def setup_page():
     if len(PASSWORD) < MIN_PASSWORD:
         missing.append(f"<p>Crie a variável <code>GARIMPO_PASSWORD</code> no serviço, com a senha do painel "
                        f"({MIN_PASSWORD} caracteres ou mais).</p>")
-    if not HOST:
+    if not HOSTS:
         missing.append("<p>Gere um domínio público para o serviço (ou defina <code>GARIMPO_HOST</code>).</p>")
     return _page("<p>Falta terminar a configuração</p>" + "".join(missing) + "<p>Depois, publique o serviço de novo.</p>")

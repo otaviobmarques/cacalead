@@ -2051,7 +2051,7 @@ class H(BaseHTTPRequestHandler):
             return True
         if self.command == "POST" and p == "/api/gowa/hook" and self.client_address[0] == "127.0.0.1":
             return False  # o gateway, dentro do mesmo servidor; a assinatura HMAC é conferida na rota
-        if nuvem.HOST and (self.headers.get("Host") or "").lower() != nuvem.HOST:
+        if nuvem.HOSTS and (self.headers.get("Host") or "").lower() not in nuvem.HOSTS:
             self.send(403, {"error": "host não permitido"})
             return True
         if not nuvem.ready():
@@ -2079,7 +2079,7 @@ class H(BaseHTTPRequestHandler):
     def login(self):
         page = "text/html; charset=utf-8"
         origin = (self.headers.get("Origin") or "").lower()
-        if origin and origin != nuvem.PUBLIC_URL:
+        if origin and origin != "https://" + (self.headers.get("Host") or "").lower():  # o formulário é deste endereço
             return self.send(403, {"error": "origem não permitida"})
         n = self.length(4096)
         if n is None:
@@ -2100,9 +2100,8 @@ class H(BaseHTTPRequestHandler):
         """Impede que outro site aberto no seu navegador use o CaçaLead (CSRF e DNS rebinding)."""
         hosts = [f"localhost:{PORT}", f"127.0.0.1:{PORT}"]
         origins = [f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"]
-        if nuvem.HOST:  # o cloud_gate já exigiu este endereço (e a senha) de tudo que vem de fora
-            hosts.append(nuvem.HOST)
-            origins.append(nuvem.PUBLIC_URL)
+        hosts += nuvem.HOSTS  # na nuvem, o cloud_gate já exigiu um destes endereços (e a senha) de tudo que vem de fora
+        origins += nuvem.ORIGINS
         host = (self.headers.get("Host") or "").lower()
         if host not in hosts:
             self.send(403, {"error": "host não permitido"})

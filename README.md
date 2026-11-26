@@ -75,7 +75,7 @@ exige senha. Só as páginas de diagnóstico (`/diagnostico/…`) abrem sem senh
    WhatsApp somem a cada publicação.
 2. Gere um domínio público para o serviço, apontando para a porta **8080**.
 3. Nas variáveis do serviço, crie **`GARIMPO_PASSWORD`** com a senha do painel (12 caracteres ou mais) e publique de novo.
-   Com domínio próprio, defina também `GARIMPO_HOST`.
+   Com domínio próprio, defina também `GARIMPO_HOST` (aceita vários, separados por vírgula; o primeiro é o principal).
 
 Rode uma única réplica. Depois de 5 senhas erradas, o endereço de quem tentou fica bloqueado por 15 minutos. A análise com
 Claude não vem instalada na imagem, e a atualização pelo painel não vale aqui (publique pelo Git). Conectar o WhatsApp
