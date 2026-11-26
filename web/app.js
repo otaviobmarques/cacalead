@@ -1,4 +1,4 @@
-/* GARIMPO — painel ao vivo */
+/* CaçaLead — painel ao vivo */
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -7,8 +7,8 @@ const fmt = n => Number(n || 0).toLocaleString('pt-BR');
 const cityOf = l => { const a = l.data.complete_address; if (a && a.city) return a.city; const m = (l.data.address || '').match(/,\s*([^,]+?)\s*-\s*[A-Z]{2}\b/); return m ? m[1].trim() : ''; };
 const bairroOf = l => (l.data._bairro || l.data.complete_address?.borough || '').trim();
 const TEMP = { quente: 'var(--hot)', morno: 'var(--warm)', frio: 'var(--cold)' };
-const TEMPHEX = { quente: '#ff4d6d', morno: '#ffb03b', frio: '#5b8cff' };
-const PIPE = { novo: ['Novo', '#a9b3cf'], contatado: ['Contatado', '#2ef2ff'], negociando: ['Negociando', '#ffcf4a'], fechado: ['Fechado', '#3dffa8'], descartado: ['Descartado', '#ff4d6d'] };
+const TEMPHEX = { quente: '#B42318', morno: '#C77700', frio: '#175CD3' };
+const PIPE = { novo: ['Novo', '#546660'], contatado: ['Contatado', '#175CD3'], negociando: ['Negociando', '#925500'], fechado: ['Fechado', '#087C35'], descartado: ['Descartado', '#B42318'] };
 const GAP_TAGS = ['Sem site', 'Só rede social', 'Só plataforma', 'Sem Instagram', 'Nota baixa', 'Nota mediana', 'Invisível', 'Pouca prova social', 'Perfil incompleto', 'Sem fotos'];
 const CAP_TAGS = ['WhatsApp', 'Telefone', 'E-mail', 'Grande', 'Movimentado'];
 const SUGS = ['hamburgueria', 'dentista', 'clínica de estética', 'barbearia', 'pet shop', 'academia', 'imobiliária', 'advogado', 'pizzaria', 'salão de beleza'];
@@ -36,7 +36,7 @@ function apiLink(l, text) { const n = l.intel.wa || l.intel.tel; return n ? `htt
 async function copyLink(key, text) {
   const l = S.leads.get(key); const u = l && apiLink(l, text); if (!u) { toast('Esse lead não tem número'); return; }
   api('PATCH', '/api/leads/' + encodeURIComponent(key), { wa_link: true });
-  copyText(u); toast('🔗 Link copiado. Quando você mandar, o Garimpo percebe sozinho.');
+  copyText(u); toast('🔗 Link copiado. Quando você mandar, o CaçaLead percebe sozinho.');
 }
 function copyText(t) {
   const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
@@ -66,7 +66,7 @@ function ping(hot) {
 /* confete dourado no fim da caçada */
 function boom() {
   const c = $('#boom'), x = c.getContext('2d'); c.width = innerWidth; c.height = innerHeight;
-  const P = Array.from({ length: 140 }, () => ({ x: innerWidth / 2, y: innerHeight / 3, vx: (Math.random() - .5) * 16, vy: Math.random() * -14 - 2, r: Math.random() * 4 + 2, c: ['#ffcf4a', '#ff9f1c', '#2ef2ff', '#8b5cff', '#ff4d6d'][Math.random() * 5 | 0], a: 1 }));
+  const P = Array.from({ length: 140 }, () => ({ x: innerWidth / 2, y: innerHeight / 3, vx: (Math.random() - .5) * 16, vy: Math.random() * -14 - 2, r: Math.random() * 4 + 2, c: ['#087C35', '#00E68B', '#102C29', '#175CD3', '#925500'][Math.random() * 5 | 0], a: 1 }));
   (function f() { x.clearRect(0, 0, c.width, c.height); let alive = 0;
     for (const p of P) { p.vy += .35; p.x += p.vx; p.y += p.vy; p.a -= .008; if (p.a > 0) { alive++; x.globalAlpha = p.a; x.fillStyle = p.c; x.fillRect(p.x, p.y, p.r, p.r * 1.6); } }
     if (alive) requestAnimationFrame(f); else x.clearRect(0, 0, c.width, c.height); })();
@@ -270,7 +270,7 @@ function renderKanban() {
     const col = ls.filter(l => l.pipeline === k).sort((a, b) => b.intel.score - a.intel.score);
     return `<section class="kcol" data-p="${k}" style="--c:${c}"><header><b><i></i>${name}</b><span>${col.length}</span></header>
       <div class="kl">${col.slice(0, 300).map(l => `<div class="kc" draggable="true" data-key="${esc(l.key)}">${ring(l.intel.score, l.intel.temp)}<div><b>${esc(l.data.title)}</b><small>${esc(l.intel.tags.slice(0, 2).join(' · ') || l.data.category)}</small>${l.wa?.in ? `<span class="wain">💬 ${esc(l.wa.text || '')}</span>` : l.wa?.out ? ackBadge(l) : ''}
-        ${k === 'contatado' || k === 'negociando' ? `<span class="kact">${!l.diag?.sent && (l.intel.wa || l.intel.tel) ? `<button data-kwant="${esc(l.key)}" title="A pessoa pediu o diagnóstico (EU QUERO): o Claude monta e o Garimpo manda o link">🙋 quer o diagnóstico</button>` : l.diag?.sent ? '<em>🧾 diagnóstico enviado</em>' : ''}${k === 'contatado' ? `<button data-kreply="${esc(l.key)}" title="Ela respondeu no WhatsApp: mover para Negociando">💬 respondeu</button>` : ''}</span>` : ''}</div></div>`).join('')}</div></section>`;
+        ${k === 'contatado' || k === 'negociando' ? `<span class="kact">${!l.diag?.sent && (l.intel.wa || l.intel.tel) ? `<button data-kwant="${esc(l.key)}" title="A pessoa pediu o diagnóstico (EU QUERO): o Claude monta e o CaçaLead manda o link">🙋 quer o diagnóstico</button>` : l.diag?.sent ? '<em>🧾 diagnóstico enviado</em>' : ''}${k === 'contatado' ? `<button data-kreply="${esc(l.key)}" title="Ela respondeu no WhatsApp: mover para Negociando">💬 respondeu</button>` : ''}</span>` : ''}</div></div>`).join('')}</div></section>`;
   }).join('');
 }
 document.addEventListener('dragstart', e => { const k = e.target.closest?.('.kc'); if (k) e.dataTransfer.setData('text/plain', k.dataset.key); });
@@ -305,7 +305,7 @@ function renderIntel() {
   // distribuição de score
   const bins = Array.from({ length: 10 }, (_, i) => ({ i, n: 0 })); ls.forEach(l => bins[Math.min(9, Math.floor(l.intel.score / 10))].n++);
   const bmax = Math.max(1, ...bins.map(b => b.n)), BW = 520, BH = 160;
-  const hist = `<svg viewBox="0 0 ${BW} ${BH + 24}">${[0, .5, 1].map(g => `<line x1="0" x2="${BW}" y1="${BH - BH * g}" y2="${BH - BH * g}" stroke="rgba(140,170,255,.08)"/>`).join('')}
+  const hist = `<svg viewBox="0 0 ${BW} ${BH + 24}">${[0, .5, 1].map(g => `<line x1="0" x2="${BW}" y1="${BH - BH * g}" y2="${BH - BH * g}" stroke="rgba(var(--line-rgb),.08)"/>`).join('')}
     ${bins.map(b => { const w = BW / 10 - 4, h = Math.max(b.n ? 4 : 0, BH * b.n / bmax), x = b.i * BW / 10 + 2, c = b.i >= 7 ? TEMPHEX.quente : b.i >= 5 ? TEMPHEX.morno : TEMPHEX.frio;
       return `<g class="hit" data-tip="Score ${b.i * 10}–${b.i * 10 + 9}|${b.n} leads"><rect x="${x}" y="0" width="${w}" height="${BH}" fill="transparent"/><rect x="${x}" y="${BH - h}" width="${w}" height="${h}" rx="4" fill="${c}"/>${b.n ? `<text class="val" x="${x + w / 2}" y="${BH - h - 6}" text-anchor="middle">${b.n}</text>` : ''}<text x="${x + w / 2}" y="${BH + 16}" text-anchor="middle">${b.i * 10}</text></g>`; }).join('')}</svg>`;
   // lacunas
@@ -332,16 +332,16 @@ function renderIntel() {
   const mx = lx(100), my = ly(4.3);
   const ticksY = []; for (let v = ylo; v <= 5.001; v += 0.5) ticksY.push(+v.toFixed(1));
   const scatter = `<svg viewBox="0 0 ${SW} ${SH}">
-    <rect x="${mx}" y="40" width="${SW - mx - 14}" height="${my - 40}" fill="rgba(61,255,168,.035)"/><rect x="${pad}" y="40" width="${mx - pad}" height="${my - 40}" fill="rgba(255,207,74,.05)"/>
-    <rect x="${mx}" y="${my}" width="${SW - mx - 14}" height="${SH - 40 - my}" fill="rgba(255,77,109,.05)"/>
-    <line x1="${mx}" x2="${mx}" y1="40" y2="${SH - 40}" stroke="rgba(140,170,255,.18)" stroke-dasharray="4 4"/><line x1="${pad}" x2="${SW - 14}" y1="${my}" y2="${my}" stroke="rgba(140,170,255,.18)" stroke-dasharray="4 4"/>
+    <rect x="${mx}" y="40" width="${SW - mx - 14}" height="${my - 40}" fill="rgba(var(--accent-rgb),.035)"/><rect x="${pad}" y="40" width="${mx - pad}" height="${my - 40}" fill="rgba(var(--warm-rgb),.05)"/>
+    <rect x="${mx}" y="${my}" width="${SW - mx - 14}" height="${SH - 40 - my}" fill="rgba(var(--hot-rgb),.05)"/>
+    <line x1="${mx}" x2="${mx}" y1="40" y2="${SH - 40}" stroke="rgba(var(--line-rgb),.18)" stroke-dasharray="4 4"/><line x1="${pad}" x2="${SW - 14}" y1="${my}" y2="${my}" stroke="rgba(var(--line-rgb),.18)" stroke-dasharray="4 4"/>
     <text x="${pad}" y="16" style="fill:var(--gold)">💎 JOIAS ESCONDIDAS · nota boa, pouca visibilidade</text>
     <text x="${SW - 14}" y="16" text-anchor="end" style="fill:var(--good)">👑 GIGANTES · fortes, pagam bem</text>
     <text x="${SW - 14}" y="${SH - 4}" text-anchor="end" style="fill:var(--hot)">🚨 REPUTAÇÃO EM RISCO · movimento alto, nota baixa</text>
     <text x="${pad}" y="${SH - 4}">🌱 INICIANTES</text>
-    ${ticksY.map(v => `<text x="${pad - 8}" y="${ly(v) + 4}" text-anchor="end">${v.toFixed(1)}</text><line x1="${pad}" x2="${SW - 14}" y1="${ly(v)}" y2="${ly(v)}" stroke="rgba(140,170,255,.05)"/>`).join('')}
+    ${ticksY.map(v => `<text x="${pad - 8}" y="${ly(v) + 4}" text-anchor="end">${v.toFixed(1)}</text><line x1="${pad}" x2="${SW - 14}" y1="${ly(v)}" y2="${ly(v)}" stroke="rgba(var(--line-rgb),.05)"/>`).join('')}
     ${[1, 10, 100, 1000, 10000].filter(v => v < maxR).map(v => `<text x="${lx(v)}" y="${SH - 24}" text-anchor="middle">${fmt(v)}</text>`).join('')}
-    ${withR.map(l => `<g class="hit" data-key="${esc(l.key)}" data-tip="${esc(l.data.title)}|★ ${l.intel.rating.toFixed(1)} · ${fmt(l.intel.reviews)} aval. · score ${l.intel.score}"><circle cx="${lx(l.intel.reviews)}" cy="${ly(l.intel.rating)}" r="${4 + l.intel.score / 18}" fill="${TEMPHEX[l.intel.temp]}" fill-opacity=".85" stroke="#0a0e17" stroke-width="2"/></g>`).join('')}
+    ${withR.map(l => `<g class="hit" data-key="${esc(l.key)}" data-tip="${esc(l.data.title)}|★ ${l.intel.rating.toFixed(1)} · ${fmt(l.intel.reviews)} aval. · score ${l.intel.score}"><circle cx="${lx(l.intel.reviews)}" cy="${ly(l.intel.rating)}" r="${4 + l.intel.score / 18}" fill="${TEMPHEX[l.intel.temp]}" fill-opacity=".85" stroke="#fff" stroke-width="2"/></g>`).join('')}
   </svg>`;
   el.innerHTML = `
     <div class="panel insight"><div><div class="big">${hot.length}</div><small class="mono" style="color:var(--ink3)">LEADS QUENTES</small></div>
@@ -406,7 +406,7 @@ function openLead(key) {
         <div class="why">${i.why.map(w => `<div class="${w.k === 'opp' ? 'o' : 'c'}"><span>${esc(w.label)}</span><span class="b"><i style="width:${Math.min(100, w.pts * 4)}%"></i></span><em>+${w.pts}</em></div>`).join('')}</div></div>
       <div class="sec"><h5>Abordagem <span class="mono" style="letter-spacing:0">edite e mande</span></h5>
         <textarea class="pitch" id="pitch" rows="4">${esc(i.pitch)}</textarea>
-        <div class="row"><button class="btn" id="copyP">Copiar texto</button>${i.wa || i.tel ? '<button class="btn" id="linkP">🔗 Copiar link api.whatsapp</button>' : ''}${i.wa ? '<button class="btn" id="sendP">Abrir no WhatsApp</button>' : ''}${(i.wa || i.tel) && S.wa?.state === 'conectado' ? '<button class="btn gold" id="sendG">📤 Enviar pelo Garimpo</button>' : ''}</div>
+        <div class="row"><button class="btn" id="copyP">Copiar texto</button>${i.wa || i.tel ? '<button class="btn" id="linkP">🔗 Copiar link api.whatsapp</button>' : ''}${i.wa ? '<button class="btn" id="sendP">Abrir no WhatsApp</button>' : ''}${(i.wa || i.tel) && S.wa?.state === 'conectado' ? '<button class="btn gold" id="sendG">📤 Enviar pelo CaçaLead</button>' : ''}</div>
         ${l.wa?.out || l.wa?.in || l.wa?.link ? `<div class="wabox" style="margin-top:10px">${l.wa.link ? `🔗 link copiado ${esc(fmtTs(l.wa.link))}<br>` : ''}${l.ack ? ackLine(l.ack) : l.wa.out ? `📤 você mandou ${esc(fmtTs(l.wa.out))}<br>` : ''}${l.wa.in ? `💬 <b>respondeu ${esc(fmtTs(l.wa.in))}:</b> ${esc(l.wa.text || '')}` : ''}</div>` : ''}</div>
       <div class="sec"><h5>🧠 Análise com Claude</h5>
         <input class="focus" id="aiFocus" placeholder="Foco opcional (ex: vendo tráfego pago, vendo site…)">
@@ -438,7 +438,7 @@ function openLead(key) {
   const sendG = $('#sendG'); if (sendG) sendG.onclick = async () => {
     if (!confirm('Enviar agora esta mensagem pelo seu WhatsApp?\n\n' + $('#pitch').value)) return;
     sendG.disabled = true; sendG.textContent = 'Enviando…';
-    try { const out = await api('POST', '/api/wa/send', { key, text: $('#pitch').value }); S.leads.set(key, out); toast('📤 Enviado'); openLead(key); } catch (er) { toast('Erro: ' + er.message); sendG.disabled = false; sendG.textContent = '📤 Enviar pelo Garimpo'; }
+    try { const out = await api('POST', '/api/wa/send', { key, text: $('#pitch').value }); S.leads.set(key, out); toast('📤 Enviado'); openLead(key); } catch (er) { toast('Erro: ' + er.message); sendG.disabled = false; sendG.textContent = '📤 Enviar pelo CaçaLead'; }
   };
   const sendP = $('#sendP'); if (sendP) sendP.onclick = () => window.open(waLink(l, $('#pitch').value), '_blank', 'noopener');
   $('#pitch').oninput = () => { const w = $('#waBtn'); if (i.wa) w.href = waLink(l, $('#pitch').value); };
@@ -539,7 +539,7 @@ $('#huntForm').onsubmit = async e => {
   if ($('#kwIn').value.trim()) addKw($('#kwIn').value);
   if (!S.kw.length) { toast('Diga o que caçar (ex: dentista)'); $('#kwIn').focus(); return; }
   const goBtn = $('#goBtn'); if (S.mode === 'bairros' && (!S.city || S.bairrosFor !== S.city.label)) { goBtn.disabled = true; goBtn.textContent = 'BUSCANDO BAIRROS…'; }
-  try { await ensureCity(); if (S.mode === 'bairros' && S.city) await loadBairros(); } finally { goBtn.disabled = false; goBtn.textContent = 'INICIAR VARREDURA'; }
+  try { await ensureCity(); if (S.mode === 'bairros' && S.city) await loadBairros(); } finally { goBtn.disabled = false; goBtn.textContent = 'Encontrar oportunidades'; }
   if (S.mode === 'bairros') {
     if (!S.city) { toast('Escolha a cidade acima primeiro.'); $('#cityIn').focus(); return; }
     await loadBairros();
@@ -556,7 +556,7 @@ $('#huntForm').onsubmit = async e => {
     if (S.mode === 'bairros') { S.bsel.clear(); drawBairros(); }
     ping(true);
   } catch (err) { toast('Erro: ' + err.message); }
-  btn.disabled = false; btn.textContent = 'INICIAR VARREDURA';
+  btn.disabled = false; btn.textContent = 'Encontrar oportunidades';
 };
 
 /* ───────── tempo real ───────── */
@@ -580,7 +580,6 @@ function connect() {
     if (prev && prev.status === 'rodando' && h.status === 'pronta') { boom(); toast(`✔ Caçada #${h.id} concluída`); fitMap(true); }
     renderProgress(); renderHunts();
   });
-  es.addEventListener('support', () => setTimeout(showSupport, 2500));
   es.addEventListener('update', e => { S.upd = JSON.parse(e.data); paintUpd(); });
   es.addEventListener('feed', e => feedLine(JSON.parse(e.data)));
   es.addEventListener('sweep', e => {
@@ -613,9 +612,9 @@ async function boot() {
     if (st.cloud) $('#logout').hidden = false;
     setEngine(st.engine); $('#aiDot').className = 'dot ' + (st.claude ? 'on' : 'off');
     const run = st.hunts.find(h => h.status === 'rodando'); if (run) S.hunt = String(run.id);
-  } catch (e) { toast('Servidor do Garimpo não respondeu'); }
+  } catch (e) { toast('Servidor do CaçaLead não respondeu'); }
   renderAll(); setTimeout(() => fitMap(true), 300);
-  feedLine({ t: new Date().toLocaleTimeString('pt-BR'), text: '◉ Garimpo pronto. Monte uma caçada à esquerda.', tone: 'stage' });
+  feedLine({ t: new Date().toLocaleTimeString('pt-BR'), text: '◉ CaçaLead pronto. Monte uma caçada à esquerda.', tone: 'stage' });
   connect();
 }
 boot();
@@ -681,7 +680,7 @@ $('#bBox').onclick = () => {
 };
 map.on('mousedown', e => {
   if (!boxOn() || !(S.boxMode || e.originalEvent.shiftKey)) return;
-  map.dragging.disable(); boxStart = e.latlng; boxRect = L.rectangle(L.latLngBounds(boxStart, boxStart), { color: '#ffcf4a', weight: 1.5, fillOpacity: .12, interactive: false }).addTo(map);
+  map.dragging.disable(); boxStart = e.latlng; boxRect = L.rectangle(L.latLngBounds(boxStart, boxStart), { color: '#087C35', weight: 1.5, fillOpacity: .12, interactive: false }).addTo(map);
 });
 map.on('mousemove', e => { if (boxStart && boxRect) boxRect.setBounds(L.latLngBounds(boxStart, e.latlng)); });
 map.on('mouseup', e => {
@@ -985,9 +984,9 @@ async function pollConn() {
 function showTerms() {
   const m = $('#modal');
   m.innerHTML = `<div class="box" style="max-height:88vh;overflow:auto"><h2>⚖️ Aviso importante</h2>
-    <p>O Garimpo é um software livre, entregue <b>como está, sem garantia</b>. Leia antes de usar:</p>
+    <p>O CaçaLead é um software livre, entregue <b>como está, sem garantia</b>. Leia antes de usar:</p>
     <ul class="terms">
-      <li><b>WhatsApp não oficial.</b> A conexão usa um cliente de código aberto que <b>não é aprovado pelo WhatsApp</b>. O WhatsApp pode derrubar a sessão, restringir ou <b>banir o número</b>. Se isso acontecer, <b>nem o Garimpo nem os autores dos componentes têm culpa ou responsabilidade</b>. Use um número que você aceita arriscar, comece devagar (20 a 30 por dia) e respeite quem pedir para parar.</li>
+      <li><b>WhatsApp não oficial.</b> A conexão usa um cliente de código aberto que <b>não é aprovado pelo WhatsApp</b>. O WhatsApp pode derrubar a sessão, restringir ou <b>banir o número</b>. Se isso acontecer, <b>nem o CaçaLead nem os autores dos componentes têm culpa ou responsabilidade</b>. Use um número que você aceita arriscar, comece devagar (20 a 30 por dia) e respeite quem pedir para parar.</li>
       <li><b>O ideal é usar o WhatsApp oficial</b> (WhatsApp Business Platform, a API da Meta), que tem custo e regras de modelos de mensagem, mas é o único caminho autorizado e seguro para volume.</li>
       <li><b>Google Maps.</b> Coletar dados do Google Maps pode contrariar os termos do Google. Seu IP pode ser bloqueado. Use com moderação.</li>
       <li><b>LGPD e mensagens frias.</b> Você é o responsável por ter base legal, oferecer descadastro e cumprir as leis do seu país sobre contato comercial. Isto não é aconselhamento jurídico.</li>
@@ -1011,32 +1010,9 @@ function onboard() {
 }
 
 
-/* ───────── apoio ao autor (opcional): ☕ no topo, e um convite na 1ª caçada e a cada 50 ───────── */
-async function showSupport() {
-  let d; try { d = await api('GET', '/api/support'); } catch (e) { return; }
-  const m = $('#modal');
-  m.innerHTML = `<div class="box"><div style="width:100%;text-align:center"><div style="font-size:42px">☕</div><h2>Gostou do Garimpo?</h2>
-    <p>Ele é grátis e vai continuar grátis. Se te ajudou a achar clientes, um Pix de qualquer valor me ajuda a manter e melhorar. Se quiser me pagar um café, sou muito grato. 💚</p>
-    <img src="/pix.svg" alt="QR Code do Pix" width="190" height="190" style="display:block;margin:12px auto 0;border-radius:12px;image-rendering:pixelated;background:#fff">
-    <div style="opacity:.7;font-size:12px;margin-top:6px">Aponte a câmera do app do seu banco para o QR Code</div>
-    <div style="margin:14px 0;padding:12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line2);word-break:break-all;font-size:12.5px">
-      <div style="opacity:.7;margin-bottom:4px">Chave Pix (${esc(d.nome)})</div><b id="pixKey">${esc(d.chave)}</b></div>
-    <div class="row"><button class="btn" id="pixLater" type="button">Agora não</button>
-      <button class="btn gold" id="pixCopy" type="button">Copiar Pix Copia e Cola</button></div></div></div>`;
-  m.classList.add('on');
-  $('#pixLater').onclick = () => m.classList.remove('on');
-  $('#pixCopy').onclick = async () => {
-    try { await navigator.clipboard.writeText(d.copia); }
-    catch (e) { const t = document.createElement('textarea'); t.value = d.copia; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
-    $('#pixCopy').textContent = '✓ Copiado! Cole no app do banco'; toast('Pix copiado. Valeu demais! 💚');
-  };
-}
-$('#coffee').onclick = showSupport;
-
-
 /* ───────── tema claro/escuro ───────── */
 $('#themeBtn').onclick = () => {
-  const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   try { localStorage.setItem('garimpo_theme', next); } catch (e) {}
 };
@@ -1056,7 +1032,7 @@ function showUpdate() {
   m.innerHTML = `<div class="box"><div style="width:100%"><h2>⬆ Atualização disponível</h2>
     <p>Você está na versão <b>${esc(u.local || '?')}</b>${u.date ? ' (' + esc(u.date) + ')' : ''}. O que há de novo:</p>
     <ul class="terms" data-noi18n>${(u.changes || []).map(c => `<li>${esc(c)}</li>`).join('') || '<li>…</li>'}</ul>
-    ${u.dirty ? '<p style="color:var(--hot)">Esta cópia tem alterações próprias (como a adaptação para Windows), então a atualização automática está desligada.</p>' : '<p style="opacity:.75;font-size:12.5px">O Garimpo baixa a versão nova, confere os componentes e reinicia sozinho. Seus leads e configurações ficam como estão. Se o WhatsApp estiver conectado, ele reconecta em instantes.</p>'}
+    ${u.dirty ? '<p style="color:var(--hot)">Esta cópia tem alterações próprias (como a adaptação para Windows), então a atualização automática está desligada.</p>' : '<p style="opacity:.75;font-size:12.5px">O CaçaLead baixa a versão nova, confere os componentes e reinicia sozinho. Seus leads e configurações ficam como estão. Se o WhatsApp estiver conectado, ele reconecta em instantes.</p>'}
     <div id="updStep" style="min-height:20px;font-size:13px;color:var(--gold)"></div>
     <div class="row"><button class="btn" id="updLater" type="button">Depois</button>
       <button class="btn gold" id="updGo" type="button" ${u.dirty ? 'disabled' : ''}>Atualizar agora</button></div></div></div>`;
@@ -1073,9 +1049,9 @@ function showUpdate() {
         const j = await r.json();
         if (j.error) { $('#updStep').textContent = j.error; $('#updLater').disabled = false; $('#updGo').disabled = false; $('#updGo').textContent = 'Tentar de novo'; return; }
         if (down || (j.local && j.local !== before) || (Date.now() - t0 > 25000 && !j.busy)) { location.reload(); return; }
-      } catch (e) { down = true; $('#updStep').textContent = 'Reiniciando o Garimpo…'; }
+      } catch (e) { down = true; $('#updStep').textContent = 'Reiniciando o CaçaLead…'; }
     }
-    $('#updStep').textContent = 'Demorou mais que o normal. Recarregue a página ou abra o Garimpo de novo.';
+    $('#updStep').textContent = 'Demorou mais que o normal. Recarregue a página ou abra o CaçaLead de novo.';
   };
 }
 $('#updBtn').onclick = showUpdate;

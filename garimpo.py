@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GARIMPO — radar de prospecção local.
+"""CaçaLead — radar de prospecção local.
 
 Servidor local (só biblioteca padrão) que:
   • liga e conversa com o motor de raspagem do Google Maps (vendor/kit, MIT, porta 8791);
@@ -297,7 +297,7 @@ def profile():
             except (OSError, ValueError):
                 pass
         out = dict(_profile_cache["v"])
-    if nuvem.PUBLIC_URL and not out["diag_base"]:  # na nuvem o próprio Garimpo já serve as páginas num endereço público
+    if nuvem.PUBLIC_URL and not out["diag_base"]:  # na nuvem o próprio CaçaLead já serve as páginas num endereço público
         out["diag_base"] = nuvem.PUBLIC_URL + "/diagnostico"
     return out
 
@@ -529,7 +529,7 @@ def wa_provider():
 
 
 def ack_of(row):
-    """Recibo da última mensagem enviada pelo Garimpo: enviada, entregue, lida ou sem entrega (só no gateway local)."""
+    """Recibo da última mensagem enviada pelo CaçaLead: enviada, entregue, lida ou sem entrega (só no gateway local)."""
     if not row:
         return None
     if row["read_at"]:
@@ -631,7 +631,7 @@ def overpass(query, wait=110):
 
     def go(url):
         try:
-            p = subprocess.run(["curl", "-s", "-m", str(wait - 5), "-A", "Garimpo/1.0 (ferramenta local de prospeccao)",
+            p = subprocess.run(["curl", "-s", "-m", str(wait - 5), "-A", "CacaLead/1.0 (ferramenta local de prospeccao)",
                                 "--data-urlencode", "data=" + query, url], capture_output=True, timeout=wait)
             els = json.loads(p.stdout or b"{}").get("elements")
             box.put((url, els if isinstance(els, list) else None))
@@ -742,7 +742,7 @@ def poll_sweep(h, s, n_sweeps):
         if old and old["hash"] == h_:
             if linked:  # já conhecido, mas apareceu nesta caçada também
                 emit("lead", lead_out(q("SELECT * FROM leads WHERE key=?", (key,), one=True)))
-                feed(hid, f"↺ {data['title']} (já estava no Garimpo)", "info", key)
+                feed(hid, f"↺ {data['title']} (já estava no CaçaLead)", "info", key)
             continue
         intel = analyse(data)
         snapshot(key, intel)
@@ -990,7 +990,7 @@ def start_hunt(kws, city, lat, lon, depth, opts, jobs):
 
 
 # ───────────────────────── Atualização pelo painel ─────────────────────────
-# Funciona quando o Garimpo foi instalado com `git clone`. Confere o GitHub, mostra o que mudou e, no clique, faz
+# Funciona quando o CaçaLead foi instalado com `git clone`. Confere o GitHub, mostra o que mudou e, no clique, faz
 # `git pull --ff-only`, roda o instalador (que só baixa o que mudou, sempre conferindo hash) e reinicia o servidor.
 UPDATE = {"git": False, "checked": 0.0, "behind": 0, "changes": [], "local": "", "date": "", "dirty": False, "error": "", "busy": False, "step": ""}
 UPDATE_LOCK = threading.Lock()
@@ -1053,10 +1053,10 @@ def update_apply():
                            encoding="utf-8", errors="replace", timeout=900)
         if r.returncode != 0:
             raise RuntimeError("o instalador falhou: " + ((r.stdout or "") + (r.stderr or ""))[-200:].strip())
-        UPDATE["step"] = "Reiniciando o Garimpo…"
+        UPDATE["step"] = "Reiniciando o CaçaLead…"
         emit("update", update_public())
         env = dict(os.environ, GARIMPO_OPEN="0")
-        if plataforma.WINDOWS:  # abre o Garimpo novo numa janela nova, que espera a porta vagar, e encerra este
+        if plataforma.WINDOWS:  # abre o CaçaLead novo numa janela nova, que espera a porta vagar, e encerra este
             subprocess.Popen([sys.executable, os.path.join(ROOT, "garimpo.py")], cwd=ROOT,
                              env=dict(env, GARIMPO_WAIT_PORT="1"), creationflags=subprocess.CREATE_NEW_CONSOLE)
             time.sleep(1)
@@ -1656,7 +1656,7 @@ def diag_full(key, send=False):
 
 
 # ───────────────────────── Gateway local (Go WhatsApp Web Multidevice) ─────────────────────────
-# Roda neste computador, só em 127.0.0.1, e avisa o Garimpo das mensagens por webhook assinado (HMAC).
+# Roda neste computador, só em 127.0.0.1, e avisa o CaçaLead das mensagens por webhook assinado (HMAC).
 GOWA_DIR = os.path.join(ROOT, "gateway")
 GOWA_BIN = os.path.join(GOWA_DIR, "bin", "gowa.exe" if plataforma.WINDOWS else "gowa")
 try:
@@ -1671,7 +1671,7 @@ _gowa_dev = {"ok": False}
 
 
 def iso_local(ts):
-    """Data/hora RFC3339 (ou epoch) para ISO local sem fuso, como o resto do Garimpo guarda."""
+    """Data/hora RFC3339 (ou epoch) para ISO local sem fuso, como o resto do CaçaLead guarda."""
     if not ts:
         return now()
     try:
@@ -1752,7 +1752,7 @@ def gowa_device():
 
 
 def _gowa_env(cfg):
-    return dict(os.environ, APP_HOST="127.0.0.1", APP_PORT=str(cfg["gowa_port"]), APP_OS="Garimpo",
+    return dict(os.environ, APP_HOST="127.0.0.1", APP_PORT=str(cfg["gowa_port"]), APP_OS="CaçaLead",
                 APP_BASIC_AUTH=f"{cfg['gowa_user']}:{cfg['gowa_pass']}", APP_DEBUG="false",
                 APP_UI_ENABLED="false", APP_UI_AUTO_UPDATE="false", MCP_ENABLED="false",
                 WHATSAPP_WEBHOOK=f"http://127.0.0.1:{PORT}/api/gowa/hook", WHATSAPP_WEBHOOK_SECRET=cfg["gowa_secret"],
@@ -1788,8 +1788,8 @@ def _gowa_spawn(cfg, env):
 
 
 def ensure_gowa():
-    """Liga o gateway se não estiver de pé. Ele sobrevive a reinícios do Garimpo (a sessão do WhatsApp fica no disco dele).
-    Se a configuração que o Garimpo quer mudou desde que ele subiu (ex.: novos eventos de webhook), faz um reinício planejado."""
+    """Liga o gateway se não estiver de pé. Ele sobrevive a reinícios do CaçaLead (a sessão do WhatsApp fica no disco dele).
+    Se a configuração que o CaçaLead quer mudou desde que ele subiu (ex.: novos eventos de webhook), faz um reinício planejado."""
     with _gowa_lock:
         cfg = gowa_cfg()
         env = _gowa_env(cfg)
@@ -1857,7 +1857,7 @@ def gowa_check(cfg=None):
             kind = "desconectado"  # só conta como queda quem estava conectado
         else:
             kind = "aguardando"
-        if not (prev == "desconfigurado" and new == "conectado"):  # Garimpo acabou de abrir e o gateway já estava conectado: não é evento novo
+        if not (prev == "desconfigurado" and new == "conectado"):  # CaçaLead acabou de abrir e o gateway já estava conectado: não é evento novo
             wa_event(kind, WA.get("error", ""))
         emit("wa", wa_public())
     return WA
@@ -1982,7 +1982,7 @@ def gowa_event(ev):
         for mid in p.get("ids") or []:
             row = q("SELECT * FROM wa_msgs WHERE id=?", (mid,), one=True)
             if not row:
-                continue  # recibo de mensagem que não foi o Garimpo que mandou
+                continue  # recibo de mensagem que não foi o CaçaLead que mandou
             if col == "read_at":
                 q("UPDATE wa_msgs SET read_at=COALESCE(read_at, ?), delivered_at=COALESCE(delivered_at, ?) WHERE id=?", (now(), now(), mid))
             else:
@@ -2006,7 +2006,7 @@ def gowa_event(ev):
 
 
 class H(BaseHTTPRequestHandler):
-    server_version = "Garimpo/1.0"
+    server_version = "CacaLead/1.0"
 
     def log_message(self, *a):
         pass
@@ -2097,7 +2097,7 @@ class H(BaseHTTPRequestHandler):
         self.send(401, nuvem.login_page("Senha incorreta."), page)
 
     def guard(self, mutating=True):
-        """Impede que outro site aberto no seu navegador use o Garimpo (CSRF e DNS rebinding)."""
+        """Impede que outro site aberto no seu navegador use o CaçaLead (CSRF e DNS rebinding)."""
         hosts = [f"localhost:{PORT}", f"127.0.0.1:{PORT}"]
         origins = [f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"]
         if nuvem.HOST:  # o cloud_gate já exigiu este endereço (e a senha) de tudo que vem de fora
@@ -2296,7 +2296,7 @@ class H(BaseHTTPRequestHandler):
                     sc = max(sc, 0.95)
                 if sc > bs:
                     best, bs = r, sc
-            if best and bs >= 0.9:  # já está no Garimpo: marca e re-checa
+            if best and bs >= 0.9:  # já está no CaçaLead: marca e re-checa
                 q("UPDATE leads SET client=1, pipeline='fechado', updated=? WHERE key=?", (now(), best["key"]))
                 set_cat(best["key"], cat)
                 lr = q("SELECT * FROM leads WHERE key=?", (best["key"],), one=True)
@@ -2378,7 +2378,7 @@ class H(BaseHTTPRequestHandler):
             return self.send(200, wa_public())
         if p == "/api/update/apply":
             if not UPDATE["git"] or UPDATE["behind"] < 1:
-                return self.send(409, {"error": "não há atualização disponível (ou o Garimpo não foi instalado com git clone)"})
+                return self.send(409, {"error": "não há atualização disponível (ou o CaçaLead não foi instalado com git clone)"})
             if UPDATE["dirty"]:
                 return self.send(409, {"error": "esta cópia tem alterações próprias, então a atualização automática está desligada"})
             if UPDATE["busy"]:
@@ -2541,7 +2541,7 @@ def main():
     if not srv:
         if os.environ.get("GARIMPO_OPEN") == "1":
             webbrowser.open(LOCAL_URL)
-        sys.exit(f"A porta {PORT} já está em uso. O Garimpo já está aberto? Veja em {LOCAL_URL}")
+        sys.exit(f"A porta {PORT} já está em uso. O CaçaLead já está aberto? Veja em {LOCAL_URL}")
     if nuvem.ENABLED:
         nuvem.init(os.path.dirname(DB_PATH))
         log(f"modo nuvem: {nuvem.PUBLIC_URL or 'sem domínio'} · " + ("login ligado" if nuvem.ready() else "FALTA CONFIGURAR"))
@@ -2557,7 +2557,7 @@ def main():
     if os.environ.get("GARIMPO_OPEN") == "1":
         threading.Timer(1.5, lambda: webbrowser.open(LOCAL_URL)).start()
     srv.daemon_threads = True
-    log(f"GARIMPO no ar → {nuvem.PUBLIC_URL or LOCAL_URL}")
+    log(f"CaçaLead no ar → {nuvem.PUBLIC_URL or LOCAL_URL}")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

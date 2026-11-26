@@ -1,4 +1,4 @@
-# Garimpo
+# CaçaLead
 
 **Radar de prospecção local.** Acha negócios no Google Maps, mostra em tempo real quem tem mais chance de virar
 cliente, e conversa com eles pelo WhatsApp. Tudo num painel que roda no seu computador.

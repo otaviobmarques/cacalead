@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Garimpo · Radar de Prospecção</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><circle cx='20' cy='20' r='18' fill='%2305070c' stroke='%23ffcf4a' stroke-width='2'/><path d='M20 9l8 8-8 14-8-14z' fill='%23ffcf4a'/></svg>">
+<title>CaçaLead · Radar de Prospecção</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><circle cx='20' cy='20' r='18' fill='%23102C29'/><circle cx='20' cy='20' r='7' fill='%2300E68B'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="app.css">
 </head>
@@ -15,17 +15,7 @@
 <div class="app" id="app">
   <header>
     <div class="brand">
-      <div class="logo">
-        <svg viewBox="0 0 40 40">
-          <defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#ffcf4a"/><stop offset="1" stop-color="#2ef2ff"/></linearGradient>
-            <radialGradient id="sg"><stop offset="0" stop-color="#2ef2ff" stop-opacity=".0"/><stop offset="1" stop-color="#2ef2ff" stop-opacity=".55"/></radialGradient></defs>
-          <circle cx="20" cy="20" r="18.5" fill="none" stroke="url(#lg)" stroke-width="1.5"/>
-          <circle cx="20" cy="20" r="11" fill="none" stroke="rgba(46,242,255,.25)"/>
-          <path class="sweep" d="M20 20 L20 1.5 A18.5 18.5 0 0 1 36 11 Z" fill="url(#sg)"/>
-          <path d="M20 12l6 6-6 10-6-10z" fill="#ffcf4a"/><path d="M14 18h12l-6 10z" fill="#ff9f1c"/>
-        </svg>
-      </div>
-      <div><h1>GARIMPO</h1><small>radar de prospecção</small></div>
+      <h1><img src="logo.png" alt="CaçaLead" data-noi18n></h1>
     </div>
     <nav class="tabs" id="tabs">
       <button data-v="radar" class="on">◎ Radar</button>
@@ -43,7 +33,6 @@
       <button class="btn-ghost" id="updBtn" hidden style="color:var(--gold);border-color:var(--gold)">⬆ Atualizar</button>
       <button class="btn-ghost" id="langBtn" data-noi18n title="Switch to English">EN</button>
       <button class="btn-ghost" id="themeBtn" title="Tema claro/escuro">◐</button>
-      <button class="btn-ghost" id="coffee" title="Gostou? Me pague um café">☕</button>
       <button class="btn-ghost" id="sound" title="Som ao achar lead quente">🔊</button>
       <a class="btn-ghost" id="export" href="/api/export.csv">⬇ CSV</a>
       <a class="btn-ghost" id="logout" href="/logout" hidden>Sair</a>
@@ -82,7 +71,7 @@
         <label class="tg"><input type="checkbox" id="optSites" checked><i></i>E-mails &amp; redes</label>
         <label class="tg"><input type="checkbox" id="optRev"><i></i>Ler avaliações</label>
       </div>
-      <button class="go" id="goBtn" type="submit">INICIAR VARREDURA</button>
+      <button class="go" id="goBtn" type="submit">Encontrar oportunidades</button>
     </form>
     <section class="panel history">
       <header><h3>☰ Caçadas</h3><span class="mono" style="font-size:11px;color:var(--ink3)" id="hCount"></span></header>
@@ -140,7 +129,7 @@
           <h3>⚙ Conexão</h3>
           <div class="seg" id="provSeg" style="margin:10px 0 12px"><button type="button" data-prov="gowa">🟢 Go WhatsApp (neste computador)</button><button type="button" data-prov="evolution">Evolution (VPS)</button></div>
           <div id="gowaBox" hidden>
-            <p class="sub">Gateway leve (Go) rodando só neste computador, em 127.0.0.1. Avisa o Garimpo das respostas em tempo real. Ignora grupos e stories.</p>
+            <p class="sub">Gateway leve (Go) rodando só neste computador, em 127.0.0.1. Avisa o CaçaLead das respostas em tempo real. Ignora grupos e stories.</p>
             <div class="row" style="margin-top:0"><span id="gwConn" class="wastate"></span></div>
             <div class="row"><button class="btn gold" id="gwConnect" type="button">📱 Conectar WhatsApp</button><button class="btn" id="gwRecheck" type="button">↻ Testar</button></div>
           </div>
@@ -156,7 +145,7 @@
         </div>
         <div class="panel wacard">
           <h3>🚀 Prospecção automática</h3>
-          <p class="sub">O Garimpo manda a fila no seu ritmo, só no horário escolhido, com intervalo aleatório entre as mensagens.</p>
+          <p class="sub">O CaçaLead manda a fila no seu ritmo, só no horário escolhido, com intervalo aleatório entre as mensagens.</p>
           <div class="waform">
             <div class="two"><label>Máximo por dia<input id="waDaily" type="number" min="1" max="300"></label>
               <label>Intervalo (seg)<span class="row" style="margin:0"><input id="waMin" type="number" min="30"> a <input id="waMax" type="number" min="30"></span></label></div>

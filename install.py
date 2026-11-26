@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Instalador do Garimpo.
+"""Instalador do CaçaLead.
 
-Baixa, confere e instala os dois componentes de terceiros que o Garimpo usa, direto das fontes originais:
+Baixa, confere e instala os dois componentes de terceiros que o CaçaLead usa, direto das fontes originais:
 
   1. Motor de busca do Google Maps  (Mahanaicoach/google-maps-scraper-kit, MIT)
      preso a um commit exato: o Git confere o conteúdo pelo hash do commit.
@@ -69,7 +69,7 @@ def platform_key():
     if system == "windows" and arch == "arm64":
         arch = "amd64"  # não há versão ARM para Windows: o Windows 11 em ARM roda a x64 emulada
     if not system or not arch or f"{system}_{arch}" not in GOWA_SHA256:
-        die(f"Sistema não suportado ({platform.system()} {platform.machine()}). O Garimpo roda em Windows 64 bits, "
+        die(f"Sistema não suportado ({platform.system()} {platform.machine()}). O CaçaLead roda em Windows 64 bits, "
             "macOS e Linux.")
     return f"{system}_{arch}", system, arch
 
@@ -179,14 +179,14 @@ def main():
             stream.reconfigure(encoding="utf-8", errors="replace")
         except (AttributeError, ValueError):
             pass
-    say("Garimpo: instalador\n")
+    say("CaçaLead: instalador\n")
     key, system, arch = platform_key()
     check_basics()
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
     install_kit()
     install_gateway(key, system, arch)
     say("\n✓ Tudo pronto.")
-    say("  Para abrir o Garimpo:  " + ("clique duas vezes em garimpo.bat" if WINDOWS else "./garimpo start"))
+    say("  Para abrir o CaçaLead:  " + ("clique duas vezes em garimpo.bat" if WINDOWS else "./garimpo start"))
     say("  Na primeira vez ele mostra o aviso importante e já pede o QR code do WhatsApp.")
 
 

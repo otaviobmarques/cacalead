@@ -14,8 +14,8 @@ def utf8_console():
 
 
 def background_kwargs():
-    """Argumentos do Popen para um processo que continua vivo depois que o Garimpo fecha."""
-    if WINDOWS:  # console próprio e escondido: fechar a janela do Garimpo não derruba o processo
+    """Argumentos do Popen para um processo que continua vivo depois que o CaçaLead fecha."""
+    if WINDOWS:  # console próprio e escondido: fechar a janela do CaçaLead não derruba o processo
         return {"creationflags": subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP}
     return {"start_new_session": True}
 
@@ -57,7 +57,7 @@ def command_line(pid):
 
 
 def terminate(pid):
-    """Encerra o processo. No Windows o encerramento é imediato; o SQLite do gateway e o do Garimpo aguentam isso."""
+    """Encerra o processo. No Windows o encerramento é imediato; o SQLite do gateway e o do CaçaLead aguentam isso."""
     try:
         os.kill(int(pid), signal.SIGTERM)
         return True

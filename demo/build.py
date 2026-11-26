@@ -6,7 +6,7 @@ fictícios no lugar do Google Maps. O servidor é simulado no navegador por demo
 
 Uso:  python demo/build.py
 """
-import json, os, re, shutil, sys, tempfile
+import base64, json, os, re, shutil, sys, tempfile
 from datetime import datetime, timedelta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -139,6 +139,8 @@ def main():
     index = read(web, "index.html")
     body = index.split("<body>", 1)[1].rsplit("</body>", 1)[0]
     body = re.sub(r"<script\b[^>]*></script>\s*", "", body)
+    with open(os.path.join(web, "logo.png"), "rb") as f:
+        body = body.replace('src="logo.png"', 'src="data:image/png;base64,' + base64.b64encode(f.read()).decode() + '"')
     fonts = re.search(r'<link href="https://fonts\.googleapis\.com[^>]+>', index).group(0)
     page = "\n".join([
         "<title>CaçaLead</title>",
