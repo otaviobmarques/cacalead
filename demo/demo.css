@@ -1,0 +1,5 @@
+/* Ajustes só da demonstração publicada. */
+:root{color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+#coffee,#updBtn{display:none!important}
+.demo-flag{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);transform:translateX(-50%);z-index:900;max-width:calc(100% - 32px);padding:6px 14px;border-radius:999px;background:#ffcf4a;color:#1a1300;font:600 12px/1.35 Inter,system-ui,sans-serif;text-align:center;pointer-events:none}

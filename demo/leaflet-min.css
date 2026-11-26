@@ -1,0 +1,27 @@
+/* O essencial para o Leaflet 1.9 posicionar o mapa (a página publicada não pode carregar a folha de estilo do CDN). */
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-tile-container,.leaflet-pane>svg,.leaflet-pane>canvas,.leaflet-zoom-box,.leaflet-image-layer,.leaflet-layer{position:absolute;left:0;top:0}
+.leaflet-container{overflow:hidden;-webkit-tap-highlight-color:transparent}
+.leaflet-tile,.leaflet-marker-icon{-webkit-user-select:none;user-select:none}
+.leaflet-tile{visibility:hidden}
+.leaflet-tile-loaded{visibility:inherit}
+.leaflet-container .leaflet-tile{max-width:none!important}
+.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}.leaflet-shadow-pane{z-index:500}.leaflet-marker-pane{z-index:600}.leaflet-tooltip-pane{z-index:650}.leaflet-popup-pane{z-index:700}
+.leaflet-marker-icon{display:block}
+.leaflet-top,.leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+.leaflet-top{top:0}.leaflet-right{right:0}.leaflet-bottom{bottom:0}.leaflet-left{left:0}
+.leaflet-control{position:relative;z-index:800;float:left;clear:both;pointer-events:auto}
+.leaflet-right .leaflet-control{float:right}
+.leaflet-top .leaflet-control{margin-top:10px}.leaflet-left .leaflet-control{margin-left:10px}.leaflet-right .leaflet-control{margin-right:10px}
+.leaflet-bottom.leaflet-right .leaflet-control{margin:0}
+.leaflet-zoom-animated{transform-origin:0 0}
+.leaflet-zoom-anim .leaflet-zoom-animated{transition:transform .25s cubic-bezier(0,0,.25,1)}
+.leaflet-zoom-anim .leaflet-tile,.leaflet-pan-anim .leaflet-tile{transition:none}
+.leaflet-grab{cursor:grab}.leaflet-interactive{cursor:pointer}
+.leaflet-marker-icon,.leaflet-pane>svg path{pointer-events:none}
+.leaflet-marker-icon.leaflet-interactive,.leaflet-pane>svg path.leaflet-interactive{pointer-events:auto}
+.leaflet-bar a{display:block;width:30px;height:30px;line-height:30px;text-align:center;text-decoration:none;font:700 18px monospace}
+.leaflet-control-attribution{font-size:11px;padding:0 6px}
+.leaflet-control-attribution a{text-decoration:none}
+.leaflet-attribution-flag{display:none!important}
+.leaflet-tooltip{position:absolute;padding:6px 8px;white-space:nowrap;pointer-events:none;border-radius:6px;font-size:12px}
+.leaflet-tooltip-top{margin-top:-6px}
