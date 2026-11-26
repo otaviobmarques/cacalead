@@ -22,6 +22,7 @@ function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add
 async function api(m, p, b) {
   const r = await fetch(p, { method: m, headers: Object.assign({ 'X-Garimpo': '1' }, b ? { 'Content-Type': 'application/json' } : {}), body: b ? JSON.stringify(b) : undefined });
   const d = await r.json().catch(() => ({}));
+  if (r.status === 401) location.href = '/login';  // na nuvem: a sessão venceu
   if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
   return d;
 }
@@ -609,6 +610,7 @@ async function boot() {
     const st = await api('GET', '/api/state');
     st.hunts.forEach(h => S.hunts.set(h.id, h)); st.leads.forEach(l => S.leads.set(l.key, l)); (st.sweeps || []).forEach(x => S.sweeps.set(x.id, x)); S.pipeline = st.pipeline;
     loadWa();
+    if (st.cloud) $('#logout').hidden = false;
     setEngine(st.engine); $('#aiDot').className = 'dot ' + (st.claude ? 'on' : 'off');
     const run = st.hunts.find(h => h.status === 'rodando'); if (run) S.hunt = String(run.id);
   } catch (e) { toast('Servidor do Garimpo não respondeu'); }

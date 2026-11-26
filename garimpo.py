@@ -14,6 +14,7 @@ import unicodedata, urllib.error, urllib.parse, urllib.request
 import base64, hmac, secrets, webbrowser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import diag
+import nuvem
 import plataforma
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -22,7 +23,9 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 WEB = os.path.join(ROOT, "web")
 KIT = os.path.join(ROOT, "vendor", "kit")
 DB_PATH = os.path.join(ROOT, "data", "garimpo.db")
-PORT = int(os.environ.get("GARIMPO_PORT", "7777"))
+PORT = int(os.environ.get("GARIMPO_PORT") or (nuvem.ENABLED and os.environ.get("PORT")) or "7777")
+# Só no modo nuvem (com senha) o painel aceita conexões de fora; no computador, apenas dele mesmo.
+BIND = (os.environ.get("GARIMPO_BIND") or "0.0.0.0") if nuvem.ENABLED else "127.0.0.1"
 ENGINE_PORT = int(os.environ.get("GARIMPO_ENGINE_PORT", "8791"))
 ENGINE = f"http://127.0.0.1:{ENGINE_PORT}"
 CLAUDE = os.environ.get("CLAUDE_BIN") or shutil.which("claude") or os.path.expanduser(
@@ -282,15 +285,21 @@ def profile():
     try:
         m = os.path.getmtime(SETTINGS_PATH)
     except (OSError, NameError):
-        return dict(PROFILE_DEFAULTS)
-    if _profile_cache["m"] != m:
-        try:
-            with open(SETTINGS_PATH, encoding="utf-8") as f:
-                cfg = json.load(f)
-            _profile_cache.update(m=m, v={k: (cfg.get(k) or v) for k, v in PROFILE_DEFAULTS.items()})
-        except (OSError, ValueError):
-            pass
-    return dict(_profile_cache["v"])
+        m = None
+    if m is None:
+        out = dict(PROFILE_DEFAULTS)
+    else:
+        if _profile_cache["m"] != m:
+            try:
+                with open(SETTINGS_PATH, encoding="utf-8") as f:
+                    cfg = json.load(f)
+                _profile_cache.update(m=m, v={k: (cfg.get(k) or v) for k, v in PROFILE_DEFAULTS.items()})
+            except (OSError, ValueError):
+                pass
+        out = dict(_profile_cache["v"])
+    if nuvem.PUBLIC_URL and not out["diag_base"]:  # na nuvem o próprio Garimpo já serve as páginas num endereço público
+        out["diag_base"] = nuvem.PUBLIC_URL + "/diagnostico"
+    return out
 
 
 TEASE = {"Sem site": "ter um site próprio", "Só rede social": "o link do Google, que hoje leva só pro Instagram",
@@ -2002,6 +2011,8 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
+    timeout = 90 if nuvem.ENABLED else None  # na internet, conexão parada não fica presa para sempre
+
     def send(self, code, body=b"", ctype="application/json; charset=utf-8", extra=None):
         if not isinstance(body, (bytes, bytearray)):
             body = json.dumps(body, ensure_ascii=False).encode()
@@ -2009,7 +2020,7 @@ class H(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
-        for k, v in (extra or {}).items():
+        for k, v in dict(nuvem.HEADERS if nuvem.ENABLED else {}, **(extra or {})).items():
             self.send_header(k, v)
         self.end_headers()
         self.wfile.write(body)
@@ -2018,14 +2029,86 @@ class H(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length") or 0)
         return json.loads(self.rfile.read(n) or b"{}") if n else {}
 
+    def length(self, limit):
+        """Tamanho do corpo do pedido, ou None (e resposta 413) se for inválido ou grande demais."""
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            n = -1
+        if 0 <= n <= limit:
+            return n
+        self.send(413, {"error": "pedido grande demais"})
+        return None
+
+    def cloud_gate(self):
+        """Na nuvem, antes de qualquer rota: saúde, endereço, login e sessão. True = o pedido já foi respondido."""
+        if not nuvem.ENABLED:
+            return False
+        p = urllib.parse.urlparse(self.path).path
+        page = "text/html; charset=utf-8"
+        if self.command == "GET" and p == "/healthz":
+            self.send(200, b"ok", "text/plain; charset=utf-8")
+            return True
+        if self.command == "POST" and p == "/api/gowa/hook" and self.client_address[0] == "127.0.0.1":
+            return False  # o gateway, dentro do mesmo servidor; a assinatura HMAC é conferida na rota
+        if nuvem.HOST and (self.headers.get("Host") or "").lower() != nuvem.HOST:
+            self.send(403, {"error": "host não permitido"})
+            return True
+        if not nuvem.ready():
+            self.send(503, nuvem.setup_page(), page)
+            return True
+        if self.command == "GET" and p.startswith("/diagnostico/") and "/." not in p:
+            return False  # as páginas de diagnóstico são feitas para o cliente abrir, sem senha
+        if p == "/login":
+            if self.command == "POST":
+                self.login()
+            else:
+                self.send(200, nuvem.login_page(), page)
+            return True
+        if not nuvem.logged_in(self.headers.get("Cookie")):
+            if p.startswith("/api/"):
+                self.send(401, {"error": "entre com a senha"})
+            else:
+                self.send(303, b"", page, {"Location": "/login"})
+            return True
+        if p == "/logout":
+            self.send(303, b"", page, {"Location": "/login", "Set-Cookie": nuvem.logout_cookie()})
+            return True
+        return False
+
+    def login(self):
+        page = "text/html; charset=utf-8"
+        origin = (self.headers.get("Origin") or "").lower()
+        if origin and origin != nuvem.PUBLIC_URL:
+            return self.send(403, {"error": "origem não permitida"})
+        n = self.length(4096)
+        if n is None:
+            return
+        form = urllib.parse.parse_qs(self.rfile.read(n).decode("utf-8", "replace"))
+        forwarded = (self.headers.get("X-Forwarded-For") or "").split(",")[-1].strip()
+        ip = (self.headers.get("X-Real-IP") or forwarded or self.client_address[0])[:64]
+        result, cookie = nuvem.login(form.get("password", [""])[0], ip)
+        if result == "ok":
+            return self.send(303, b"", page, {"Location": "/", "Set-Cookie": cookie})
+        log(f"login recusado ({result}) de {ip!r}")
+        if result == "bloqueado":
+            return self.send(429, nuvem.login_page("Muitas tentativas. Espere 15 minutos."), page)
+        time.sleep(0.5)
+        self.send(401, nuvem.login_page("Senha incorreta."), page)
+
     def guard(self, mutating=True):
         """Impede que outro site aberto no seu navegador use o Garimpo (CSRF e DNS rebinding)."""
+        hosts = [f"localhost:{PORT}", f"127.0.0.1:{PORT}"]
+        origins = [f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"]
+        if nuvem.HOST:  # o cloud_gate já exigiu este endereço (e a senha) de tudo que vem de fora
+            hosts.append(nuvem.HOST)
+            origins.append(nuvem.PUBLIC_URL)
         host = (self.headers.get("Host") or "").lower()
-        if host not in (f"localhost:{PORT}", f"127.0.0.1:{PORT}"):
+        if host not in hosts:
             self.send(403, {"error": "host não permitido"})
             return False
         origin = (self.headers.get("Origin") or "").lower()
-        if origin and origin not in (f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"):
+        if origin and origin not in origins:
             self.send(403, {"error": "origem não permitida"})
             return False
         if mutating and self.headers.get("X-Garimpo") != "1":
@@ -2034,7 +2117,7 @@ class H(BaseHTTPRequestHandler):
         return True
 
     def do_GET(self):
-        if not self.guard(mutating=False):
+        if self.cloud_gate() or not self.guard(mutating=False):
             return
         u = urllib.parse.urlparse(self.path)
         p, qs = u.path, urllib.parse.parse_qs(u.query)
@@ -2045,7 +2128,8 @@ class H(BaseHTTPRequestHandler):
             leads = all_leads()
             sweeps = [sweep_out(r) for r in q("SELECT * FROM sweeps ORDER BY hunt_id, idx")]
             return self.send(200, {"hunts": hunts, "leads": leads, "sweeps": sweeps, "engine": engine_alive(),
-                                   "claude": bool(CLAUDE and os.path.exists(CLAUDE)), "pipeline": PIPELINE})
+                                   "claude": bool(CLAUDE and os.path.exists(CLAUDE)), "pipeline": PIPELINE,
+                                   "cloud": nuvem.ENABLED})
         if p == "/api/update":
             if qs.get("check") and time.time() - UPDATE["checked"] > 60 and not UPDATE["busy"]:
                 update_check()
@@ -2150,10 +2234,13 @@ class H(BaseHTTPRequestHandler):
 
     def do_POST(self):
         p = urllib.parse.urlparse(self.path).path
-        if not self.guard(mutating=(p != "/api/gowa/hook")):  # o webhook é protegido pela assinatura HMAC
+        if self.cloud_gate() or not self.guard(mutating=(p != "/api/gowa/hook")):  # o webhook é protegido pela assinatura HMAC
             return
         if p == "/api/gowa/hook":  # corpo cru: a assinatura HMAC é conferida em cima dele
-            raw = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+            n = self.length(2_000_000)
+            if n is None:
+                return
+            raw = self.rfile.read(n)
             sig = (self.headers.get("X-Hub-Signature-256") or "").replace("sha256=", "")
             good = hmac.new(gowa_cfg()["gowa_secret"].encode(), raw, "sha256").hexdigest()
             if not hmac.compare_digest(sig, good):
@@ -2362,7 +2449,7 @@ class H(BaseHTTPRequestHandler):
         self.send(404, {"error": "rota desconhecida"})
 
     def do_PATCH(self):
-        if not self.guard():
+        if self.cloud_gate() or not self.guard():
             return
         p = urllib.parse.urlparse(self.path).path
         m = re.match(r"^/api/leads/(.+)$", p)
@@ -2388,7 +2475,7 @@ class H(BaseHTTPRequestHandler):
         self.send(200, out)
 
     def do_DELETE(self):
-        if not self.guard():
+        if self.cloud_gate() or not self.guard():
             return
         p = urllib.parse.urlparse(self.path).path
         if p == "/api/wa/queue":
@@ -2441,7 +2528,7 @@ def open_server():
     tries = 30 if os.environ.pop("GARIMPO_WAIT_PORT", "") else 1
     for left in range(tries - 1, -1, -1):
         try:
-            return QuietServer(("127.0.0.1", PORT), H)
+            return QuietServer((BIND, PORT), H)
         except OSError:
             if not left:
                 return None
@@ -2455,6 +2542,9 @@ def main():
         if os.environ.get("GARIMPO_OPEN") == "1":
             webbrowser.open(LOCAL_URL)
         sys.exit(f"A porta {PORT} já está em uso. O Garimpo já está aberto? Veja em {LOCAL_URL}")
+    if nuvem.ENABLED:
+        nuvem.init(os.path.dirname(DB_PATH))
+        log(f"modo nuvem: {nuvem.PUBLIC_URL or 'sem domínio'} · " + ("login ligado" if nuvem.ready() else "FALTA CONFIGURAR"))
     rescore()
     threading.Thread(target=poller, daemon=True).start()
     threading.Thread(target=queue_worker, daemon=True).start()
@@ -2467,7 +2557,7 @@ def main():
     if os.environ.get("GARIMPO_OPEN") == "1":
         threading.Timer(1.5, lambda: webbrowser.open(LOCAL_URL)).start()
     srv.daemon_threads = True
-    log(f"GARIMPO no ar → {LOCAL_URL}")
+    log(f"GARIMPO no ar → {nuvem.PUBLIC_URL or LOCAL_URL}")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

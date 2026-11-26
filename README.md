@@ -66,6 +66,21 @@ O instalador baixa e **confere por hash** os dois componentes de terceiros (veja
 
 Depois ele abre o painel em **http://localhost:7777**. No macOS, também dá para clicar duas vezes em `Garimpo.command`.
 
+### Na nuvem (Railway ou outro servidor com Docker)
+
+O `Dockerfile` monta o Garimpo com o Chromium, o motor de busca e o gateway do WhatsApp, em **modo nuvem**: todo o painel
+exige senha. Só as páginas de diagnóstico (`/diagnostico/…`) abrem sem senha, para os seus clientes.
+
+1. Crie o serviço a partir deste repositório e anexe um **disco (volume) em `/data`**. Sem ele, os leads e a sessão do
+   WhatsApp somem a cada publicação.
+2. Gere um domínio público para o serviço, apontando para a porta **8080**.
+3. Nas variáveis do serviço, crie **`GARIMPO_PASSWORD`** com a senha do painel (12 caracteres ou mais) e publique de novo.
+   Com domínio próprio, defina também `GARIMPO_HOST`.
+
+Rode uma única réplica. Depois de 5 senhas erradas, o endereço de quem tentou fica bloqueado por 15 minutos. A análise com
+Claude não vem instalada na imagem, e a atualização pelo painel não vale aqui (publique pelo Git). Conectar o WhatsApp
+a partir de um servidor tende a aumentar o risco de bloqueio, e o Google pode limitar mais as buscas vindas dele.
+
 ### Primeira vez
 
 1. O painel mostra o **aviso importante**. Você precisa ler e aceitar para conectar o WhatsApp.

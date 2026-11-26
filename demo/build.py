@@ -125,7 +125,7 @@ def script(text):
 def main():
     tmp = tempfile.mkdtemp(prefix="cacalead-demo-")  # o garimpo.py cria o banco ao lado dele: nada toca nos seus dados
     try:
-        for name in ("garimpo.py", "diag.py", "plataforma.py"):
+        for name in ("garimpo.py", "diag.py", "plataforma.py", "nuvem.py"):
             shutil.copy(os.path.join(ROOT, name), tmp)
         sys.dont_write_bytecode = True
         sys.path.insert(0, tmp)

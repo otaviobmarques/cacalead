@@ -3,3 +3,4 @@
 garimpo text eol=lf
 *.sh text eol=lf
 *.command text eol=lf
+Dockerfile text eol=lf

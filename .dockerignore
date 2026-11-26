@@ -1,0 +1,13 @@
+# Nada de dados, segredos ou componentes baixados neste computador entra na imagem.
+.git
+data
+gateway
+vendor
+demo
+**/__pycache__
+**/*.pyc
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/.env
+**/settings.json

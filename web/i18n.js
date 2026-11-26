@@ -13,7 +13,7 @@
     'motor…': 'engine…', 'motor offline': 'engine offline', 'motor online': 'engine online', 'motor': 'engine',
     'Filtrar por cidade': 'Filter by city', 'Filtrar por caçada': 'Filter by hunt', 'Motor de raspagem': 'Scraping engine', 'Claude CLI para análises': 'Claude CLI for analysis',
     'Som ao achar lead quente': 'Sound when a hot lead is found', 'Gostou? Me pague um café': 'Enjoying it? Buy me a coffee', 'Tema claro/escuro': 'Light/dark theme', 'Mudar idioma': 'Change language',
-    '⬇ CSV': '⬇ CSV', 'Todas as cidades': 'All cities', 'Todas as caçadas': 'All hunts', 'sem cidade': 'no city',
+    '⬇ CSV': '⬇ CSV', 'Sair': 'Sign out','Todas as cidades': 'All cities', 'Todas as caçadas': 'All hunts', 'sem cidade': 'no city',
     /* nova caçada */
     '⟟ Nova caçada': '⟟ New hunt', 'O que caçar': 'What to hunt', 'ex: hamburgueria ↵': 'e.g. burger joint ↵', 'Onde': 'Where', 'Cidade… (ex: Porto Alegre)': 'City… (e.g. Porto Alegre)',
     'Modo de varredura': 'Sweep mode', '🏙 Cidade inteira': '🏙 Whole city', '🏘 Bairro a bairro': '🏘 Neighborhood by neighborhood', 'Alcance por termo': 'Reach per term', 'Alcance por bairro': 'Reach per neighborhood',
