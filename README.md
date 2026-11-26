@@ -3,6 +3,9 @@
 **Radar de prospecção local.** Acha negócios no Google Maps, mostra em tempo real quem tem mais chance de virar
 cliente, e conversa com eles pelo WhatsApp. Tudo num painel que roda no seu computador.
 
+Esta cópia ([otaviobmarques/cacalead](https://github.com/otaviobmarques/cacalead)) é uma adaptação para Windows do
+[Garimpo](https://github.com/Willclaf/garimpo), de Willclaf, distribuído sob a licença MIT.
+
 > ⚠️ **Leia o [aviso importante](DISCLAIMER.md) antes de usar.** O WhatsApp é conectado por um cliente **não oficial**:
 > ele pode cair, ser restringido ou ter o número banido, e **isso não é culpa do Garimpo nem de quem o publicou**.
 > **O ideal é usar a API oficial do WhatsApp** (WhatsApp Business Platform, da Meta).
@@ -31,12 +34,28 @@ cliente, e conversa com eles pelo WhatsApp. Tudo num painel que roda no seu comp
 
 ## Instalação
 
-Precisa de **macOS ou Linux**, **Python 3.9+**, `git` e `curl`. No Windows, use o WSL2. Ocupa uns 150 MB, mais o
-Chrome para Testing (~100 MB) se você não tiver Chrome, Chromium, Edge ou Brave.
+Precisa de **Windows 10/11 (64 bits), macOS ou Linux**, **Python 3.9+**, `git` e `curl` (o Windows já vem com o `curl`).
+Ocupa uns 150 MB, mais o Chrome para Testing (~100 MB) se você não tiver Chrome, Chromium, Edge ou Brave.
+
+### Windows
+
+1. Instale o [Python](https://www.python.org/downloads/windows/) (marque **Add python.exe to PATH**) e o
+   [Git](https://git-scm.com/download/win).
+2. Baixe esta pasta e clique duas vezes em **`garimpo.bat`**. Na primeira vez ele instala os componentes; depois abre o
+   painel em **http://127.0.0.1:7777**. Deixe a janela preta aberta enquanto usa.
+3. Para fechar tudo (painel, gateway do WhatsApp e motor de busca), clique duas vezes em **`parar-garimpo.bat`**.
+
+No terminal: `.\garimpo.bat start`, `stop`, `status` ou `install`. Fechar a janela para o painel, mas o gateway do
+WhatsApp e o motor continuam rodando em segundo plano até você usar o `parar-garimpo.bat`.
+
+Prefira uma pasta fora do OneDrive ou do Dropbox: a sincronização atrapalha o banco de dados e enviaria para a nuvem a
+sessão do seu WhatsApp.
+
+### macOS e Linux
 
 ```bash
-git clone https://github.com/Willclaf/garimpo.git
-cd garimpo
+git clone https://github.com/otaviobmarques/cacalead.git
+cd cacalead
 ./install.sh
 ```
 
@@ -81,8 +100,9 @@ Para mandar o link a clientes, as páginas precisam estar num endereço público
 Avançado**, informe:
 
 - o **endereço público** (por exemplo `https://seusite.com/diagnostico`);
-- o **destino do rsync** do seu servidor (por exemplo `usuario@servidor:/var/www/diagnostico/`), com chave SSH já
-  configurada. O Garimpo sincroniza as páginas sozinho.
+- o **destino no seu servidor** (por exemplo `usuario@servidor:/var/www/diagnostico/`), com chave SSH já
+  configurada. O Garimpo envia as páginas sozinho: por `rsync` no macOS e no Linux, e por `scp` no Windows (a pasta de
+  destino precisa existir, e o primeiro acesso por `ssh` tem de ser feito à mão para aceitar o servidor).
 
 Sirva essa pasta com `X-Robots-Tag: noindex` para o Google não indexar. Cada página tem um código aleatório no endereço.
 
@@ -127,7 +147,7 @@ Quase tudo se configura no painel. Variáveis de ambiente opcionais:
 - Mensagens e regras de números pensadas para o **Brasil, em português**. Celulares brasileiros têm duas grafias
   (com e sem o 9 depois do DDD): o Garimpo escolhe sozinho (DDD 31 ou maior fica sem o 9, ou usa a conversa que já
   existe), mas isso foi validado apenas em alguns DDDs.
-- Roda em macOS e Linux. Windows só via WSL2.
+- No Windows, só 64 bits. A atualização pelo painel fica desligada em cópias com alterações próprias.
 - Sem a API oficial do WhatsApp (ainda).
 - O Google muda o Maps de tempos em tempos e o motor pode precisar de atualização.
 

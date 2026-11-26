@@ -1054,7 +1054,7 @@ function showUpdate() {
   m.innerHTML = `<div class="box"><div style="width:100%"><h2>⬆ Atualização disponível</h2>
     <p>Você está na versão <b>${esc(u.local || '?')}</b>${u.date ? ' (' + esc(u.date) + ')' : ''}. O que há de novo:</p>
     <ul class="terms" data-noi18n>${(u.changes || []).map(c => `<li>${esc(c)}</li>`).join('') || '<li>…</li>'}</ul>
-    ${u.dirty ? '<p style="color:var(--hot)">Você alterou arquivos do Garimpo. Atualize pelo terminal: <code>git pull</code></p>' : '<p style="opacity:.75;font-size:12.5px">O Garimpo baixa a versão nova, confere os componentes e reinicia sozinho. Seus leads e configurações ficam como estão. Se o WhatsApp estiver conectado, ele reconecta em instantes.</p>'}
+    ${u.dirty ? '<p style="color:var(--hot)">Esta cópia tem alterações próprias (como a adaptação para Windows), então a atualização automática está desligada.</p>' : '<p style="opacity:.75;font-size:12.5px">O Garimpo baixa a versão nova, confere os componentes e reinicia sozinho. Seus leads e configurações ficam como estão. Se o WhatsApp estiver conectado, ele reconecta em instantes.</p>'}
     <div id="updStep" style="min-height:20px;font-size:13px;color:var(--gold)"></div>
     <div class="row"><button class="btn" id="updLater" type="button">Depois</button>
       <button class="btn gold" id="updGo" type="button" ${u.dirty ? 'disabled' : ''}>Atualizar agora</button></div></div></div>`;
@@ -1073,7 +1073,7 @@ function showUpdate() {
         if (down || (j.local && j.local !== before) || (Date.now() - t0 > 25000 && !j.busy)) { location.reload(); return; }
       } catch (e) { down = true; $('#updStep').textContent = 'Reiniciando o Garimpo…'; }
     }
-    $('#updStep').textContent = 'Demorou mais que o normal. Recarregue a página ou rode ./garimpo start.';
+    $('#updStep').textContent = 'Demorou mais que o normal. Recarregue a página ou abra o Garimpo de novo.';
   };
 }
 $('#updBtn').onclick = showUpdate;

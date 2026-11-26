@@ -137,14 +137,14 @@
         <div class="panel wacard wide" id="waAlert" hidden></div>
         <div class="panel wacard">
           <h3>⚙ Conexão</h3>
-          <div class="seg" id="provSeg" style="margin:10px 0 12px"><button type="button" data-prov="gowa">🟢 Go WhatsApp (neste Mac)</button><button type="button" data-prov="evolution">Evolution (VPS)</button></div>
+          <div class="seg" id="provSeg" style="margin:10px 0 12px"><button type="button" data-prov="gowa">🟢 Go WhatsApp (neste computador)</button><button type="button" data-prov="evolution">Evolution (VPS)</button></div>
           <div id="gowaBox" hidden>
-            <p class="sub">Gateway leve (Go) rodando só neste Mac, em 127.0.0.1. Avisa o Garimpo das respostas em tempo real. Ignora grupos e stories.</p>
+            <p class="sub">Gateway leve (Go) rodando só neste computador, em 127.0.0.1. Avisa o Garimpo das respostas em tempo real. Ignora grupos e stories.</p>
             <div class="row" style="margin-top:0"><span id="gwConn" class="wastate"></span></div>
             <div class="row"><button class="btn gold" id="gwConnect" type="button">📱 Conectar WhatsApp</button><button class="btn" id="gwRecheck" type="button">↻ Testar</button></div>
           </div>
           <div id="evoBox">
-          <p class="sub">Use a Evolution do seu VPS. A API key fica salva só neste Mac (data/settings.json).</p>
+          <p class="sub">Use a Evolution do seu VPS. A API key fica salva só neste computador (data/settings.json).</p>
           <form id="waForm" autocomplete="off" class="waform">
             <label>URL da Evolution<input id="evoUrl" placeholder="https://evolution.seudominio.com.br"></label>
             <label>API key<input id="evoKey" type="password" placeholder="cole a API key (global ou da instância)"></label>
@@ -183,7 +183,7 @@
               <div class="two"><label>Seus serviços (frase)<input id="meServices" placeholder="tráfego pago, site e fotografia"></label><label>Nome do seu método (opcional)<input id="meMethod"></label></div>
               <details style="margin-top:4px"><summary style="cursor:pointer;color:var(--ink2);font-size:12.5px">Avançado: páginas de diagnóstico públicas</summary>
                 <div class="waform" style="margin-top:10px"><label>Endereço público das páginas (https://seusite.com/diagnostico)<input id="diagBase" placeholder="https://..."></label>
-                <label>Destino do rsync para publicar (usuario@servidor:/pasta/)<input id="diagPublish" placeholder="usuario@servidor:/var/www/diagnostico/"></label>
+                <label>Destino para publicar via SSH (usuario@servidor:/pasta/)<input id="diagPublish" placeholder="usuario@servidor:/var/www/diagnostico/"></label>
                 <label>URL da sua logo (https, opcional)<input id="meLogo" placeholder="https://.../logo.png"></label></div></details>
               <label class="tg" style="text-transform:none;letter-spacing:0;font:500 12.5px var(--font);color:var(--ink2);flex-direction:row"><input type="checkbox" id="diagAuto"><i></i>Quando responder EU QUERO, montar o diagnóstico com o Claude e mandar o link sozinho</label>
               <div class="row"><button class="btn gold" type="submit">Salvar apresentação</button></div>

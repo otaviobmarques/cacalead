@@ -14,6 +14,7 @@ import unicodedata, urllib.error, urllib.parse, urllib.request
 import base64, hmac, secrets, webbrowser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import diag
+import plataforma
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -24,7 +25,10 @@ DB_PATH = os.path.join(ROOT, "data", "garimpo.db")
 PORT = int(os.environ.get("GARIMPO_PORT", "7777"))
 ENGINE_PORT = int(os.environ.get("GARIMPO_ENGINE_PORT", "8791"))
 ENGINE = f"http://127.0.0.1:{ENGINE_PORT}"
-CLAUDE = os.environ.get("CLAUDE_BIN") or shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
+CLAUDE = os.environ.get("CLAUDE_BIN") or shutil.which("claude") or os.path.expanduser(
+    "~/.local/bin/claude.exe" if plataforma.WINDOWS else "~/.local/bin/claude")
+# No Windows, "localhost" tenta primeiro o IPv6 (::1), onde o painel não escuta, e cada conexão atrasa.
+LOCAL_URL = f"http://{'127.0.0.1' if plataforma.WINDOWS else 'localhost'}:{PORT}"
 
 PIPELINE = ["novo", "contatado", "negociando", "fechado", "descartado"]
 
@@ -59,7 +63,7 @@ def ensure_engine():
     if engine_alive():
         return True
     env_file = os.path.join(KIT, ".env")
-    with open(env_file, "w") as f:
+    with open(env_file, "w", encoding="utf-8") as f:
         f.write(f"SCRAPER_PORT={ENGINE_PORT}\n")
     log("ligando o motor de raspagem…")
     subprocess.run([sys.executable, os.path.join(KIT, "scripts", "engine.py"), "start"], cwd=KIT)
@@ -281,7 +285,7 @@ def profile():
         return dict(PROFILE_DEFAULTS)
     if _profile_cache["m"] != m:
         try:
-            with open(SETTINGS_PATH) as f:
+            with open(SETTINGS_PATH, encoding="utf-8") as f:
                 cfg = json.load(f)
             _profile_cache.update(m=m, v={k: (cfg.get(k) or v) for k, v in PROFILE_DEFAULTS.items()})
         except (OSError, ValueError):
@@ -508,7 +512,7 @@ def wa_provider():
         return "evolution"
     if _prov_cache["m"] != m:
         try:
-            with open(SETTINGS_PATH) as f:
+            with open(SETTINGS_PATH, encoding="utf-8") as f:
                 _prov_cache.update(m=m, v=json.load(f).get("provider", "evolution"))
         except (OSError, ValueError):
             pass
@@ -644,7 +648,7 @@ def bairros(city, lat, lon):
     os.makedirs(cache_dir, exist_ok=True)
     cache = os.path.join(cache_dir, re.sub(r"[^a-z0-9]+", "-", fold(city or f"{lat},{lon}")) + ".json")
     if os.path.exists(cache):
-        with open(cache) as f:
+        with open(cache, encoding="utf-8") as f:
             return json.load(f)
     query = (f'[out:json][timeout:90];is_in({float(lat)},{float(lon)})->.x;'
              'area.x["admin_level"="8"]["boundary"="administrative"]->.a;'
@@ -670,7 +674,7 @@ def bairros(city, lat, lon):
     out = [v[1] for v in best.values()]
     main = [b for b in out if b["kind"] == "suburb"]
     out = sorted(main if len(main) >= 5 else out, key=lambda b: fold(b["name"]))
-    with open(cache, "w") as f:
+    with open(cache, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
     return out
 
@@ -896,7 +900,8 @@ Faixa de valor mensal realista em R$ e chance de fechar (baixa/média/alta).
         with tempfile.TemporaryDirectory() as tmp:
             p = subprocess.run([CLAUDE, "-p", "--tools", "", "--strict-mcp-config", "--no-session-persistence",
                                 "--model", "sonnet", "--output-format", "text"],
-                               input=prompt, capture_output=True, text=True, timeout=180, cwd=tmp)
+                               input=prompt, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                               timeout=180, cwd=tmp)
         out = (p.stdout or "").strip() or ("Erro do Claude CLI: " + (p.stderr or "sem saída")[-400:])
     except FileNotFoundError:
         out = "Não achei o Claude CLI (`claude`). Instale ou defina CLAUDE_BIN."
@@ -983,7 +988,8 @@ UPDATE_LOCK = threading.Lock()
 
 
 def _git(*args, timeout=30):
-    r = subprocess.run(["git", "-C", ROOT] + list(args), capture_output=True, text=True, timeout=timeout)
+    r = subprocess.run(["git", "-C", ROOT] + list(args), capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", timeout=timeout)
     return r.returncode, (r.stdout or "").strip(), (r.stderr or "").strip()
 
 
@@ -999,7 +1005,8 @@ def update_check():
             return
         UPDATE["local"] = _git("rev-parse", "--short", "HEAD")[1]
         UPDATE["date"] = _git("log", "-1", "--format=%cs")[1]
-        UPDATE["dirty"] = bool(_git("status", "--porcelain", "--untracked-files=no")[1])
+        ahead = _git("rev-list", "--count", "origin/main..HEAD")[1]  # commits seus (ex.: a adaptação para Windows)
+        UPDATE["dirty"] = bool(_git("status", "--porcelain", "--untracked-files=no")[1]) or ahead not in ("", "0")
         behind = _git("rev-list", "--count", "HEAD..origin/main")[1]
         UPDATE["behind"] = int(behind) if behind.isdigit() else 0
         UPDATE["changes"] = [x for x in _git("log", "--format=%s", "-n", "10", "HEAD..origin/main")[1].splitlines() if x]
@@ -1033,12 +1040,18 @@ def update_apply():
             raise RuntimeError("não deu para atualizar sozinho (" + (err or "conflito")[:120] + "). Atualize pelo terminal: git pull")
         UPDATE["step"] = "Conferindo os componentes (instalador)…"
         emit("update", update_public())
-        r = subprocess.run([sys.executable, "-I", os.path.join(ROOT, "install.py")], cwd=ROOT, capture_output=True, text=True, timeout=900)
+        r = subprocess.run([sys.executable, "-I", os.path.join(ROOT, "install.py")], cwd=ROOT, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=900)
         if r.returncode != 0:
             raise RuntimeError("o instalador falhou: " + ((r.stdout or "") + (r.stderr or ""))[-200:].strip())
         UPDATE["step"] = "Reiniciando o Garimpo…"
         emit("update", update_public())
         env = dict(os.environ, GARIMPO_OPEN="0")
+        if plataforma.WINDOWS:  # abre o Garimpo novo numa janela nova, que espera a porta vagar, e encerra este
+            subprocess.Popen([sys.executable, os.path.join(ROOT, "garimpo.py")], cwd=ROOT,
+                             env=dict(env, GARIMPO_WAIT_PORT="1"), creationflags=subprocess.CREATE_NEW_CONSOLE)
+            time.sleep(1)
+            os._exit(0)
         script = f'sleep 1; kill {os.getpid()}; sleep 2; cd "{ROOT}"; nohup "{sys.executable}" garimpo.py >> data/garimpo.log 2>&1 &'
         subprocess.Popen(["sh", "-c", script], env=env, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as e:  # noqa: BLE001
@@ -1085,7 +1098,7 @@ OPT_OUT = re.compile(r"\b(n[aã]o (tenho |temos )?interesse|sem interesse|n[aã]
 
 def wa_settings():
     try:
-        with open(SETTINGS_PATH) as f:
+        with open(SETTINGS_PATH, encoding="utf-8") as f:
             return dict(WA_DEFAULTS, **json.load(f))
     except (OSError, ValueError):
         return dict(WA_DEFAULTS)
@@ -1093,7 +1106,7 @@ def wa_settings():
 
 def wa_save(cfg):
     os.makedirs(os.path.dirname(SETTINGS_PATH), exist_ok=True)
-    with open(SETTINGS_PATH, "w") as f:
+    with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
         json.dump(cfg, f, ensure_ascii=False, indent=1)
     try:
         os.chmod(SETTINGS_PATH, 0o600)  # a API key fica só para o seu usuário
@@ -1468,7 +1481,7 @@ def diag_slug(key, title, category=""):
 def diag_url(slug):
     if not slug:
         return ""
-    base = profile().get("diag_base", "").rstrip("/") or f"http://localhost:{PORT}/diagnostico"
+    base = profile().get("diag_base", "").rstrip("/") or f"{LOCAL_URL}/diagnostico"
     return f"{base}/{slug}/"
 
 
@@ -1499,7 +1512,7 @@ def write_diag(r):
     ai = json.loads(r["diag_ai"]) if r["diag_ai"] else None
     page = diag.render(d, i, peers_of(d, r["key"]), profile(), ai=ai, logo=profile().get("me_logo", ""), city=city_of(d))
     os.makedirs(os.path.join(DIAG_DIR, slug), exist_ok=True)
-    with open(os.path.join(DIAG_DIR, slug, "index.html"), "w") as f:
+    with open(os.path.join(DIAG_DIR, slug, "index.html"), "w", encoding="utf-8") as f:
         f.write(page)
     q("UPDATE leads SET diag_slug=?, diag_dirty=0 WHERE key=?", (slug, r["key"]))
     return slug
@@ -1509,16 +1522,15 @@ _publish_lock = threading.Lock()
 
 
 def publish():
-    """Sobe as páginas para o servidor que você configurou (rsync só manda o que mudou). Sem servidor, ficam só neste computador."""
+    """Sobe as páginas para o servidor que você configurou (só o que mudou). Sem servidor, ficam só neste computador."""
     dest = profile().get("diag_publish", "")
     if not dest:
         return True
     with _publish_lock:
-        p = subprocess.run(["rsync", "-az", "--exclude", "_assets", "--", DIAG_DIR + "/", dest],
-                           capture_output=True, text=True, timeout=300)
-        if p.returncode:
-            log(f"publicar diagnósticos: {p.stderr[-300:]}")
-        return p.returncode == 0
+        ok, err = plataforma.publish_folder(DIAG_DIR, dest)
+        if not ok:
+            log(f"publicar diagnósticos: {err[-300:]}")
+        return ok
 
 
 def diag_worker():
@@ -1566,7 +1578,8 @@ Responda SOMENTE um JSON válido, sem texto antes ou depois, neste formato:
 </dados_do_negocio>"""
     with tempfile.TemporaryDirectory() as tmp:
         p = subprocess.run([CLAUDE, "-p", "--tools", "", "--strict-mcp-config", "--no-session-persistence", "--model", "sonnet",
-                            "--output-format", "text"], input=prompt, capture_output=True, text=True, timeout=240, cwd=tmp)
+                            "--output-format", "text"], input=prompt, capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", timeout=240, cwd=tmp)
     out = p.stdout or ""
     m = re.search(r"\{.*\}", out, re.S)
     data = json.loads(m.group(0)) if m else None
@@ -1634,11 +1647,11 @@ def diag_full(key, send=False):
 
 
 # ───────────────────────── Gateway local (Go WhatsApp Web Multidevice) ─────────────────────────
-# Roda neste Mac, só em 127.0.0.1, e avisa o Garimpo das mensagens por webhook assinado (HMAC).
+# Roda neste computador, só em 127.0.0.1, e avisa o Garimpo das mensagens por webhook assinado (HMAC).
 GOWA_DIR = os.path.join(ROOT, "gateway")
-GOWA_BIN = os.path.join(GOWA_DIR, "bin", "gowa")
+GOWA_BIN = os.path.join(GOWA_DIR, "bin", "gowa.exe" if plataforma.WINDOWS else "gowa")
 try:
-    with open(os.path.join(GOWA_DIR, "VERSION")) as _f:
+    with open(os.path.join(GOWA_DIR, "VERSION"), encoding="utf-8") as _f:
         GOWA_VERSION = _f.read().strip()
 except OSError:
     GOWA_VERSION = ""
@@ -1752,7 +1765,8 @@ def _gowa_spawn(cfg, env):
     os.makedirs(os.path.dirname(GOWA_LOG), exist_ok=True)
     logf = open(GOWA_LOG, "ab")
     subprocess.Popen([GOWA_BIN, "rest"], cwd=os.path.dirname(GOWA_LOG), env=env, stdout=logf, stderr=logf,
-                     stdin=subprocess.DEVNULL, start_new_session=True)
+                     stdin=subprocess.DEVNULL, **plataforma.background_kwargs())
+    logf.close()  # o gateway fica com a cópia dele
     with open(GOWA_HASH_FILE, "w") as f:
         f.write(_gowa_hash(env))
     _gowa_dev["ok"] = False
@@ -1781,11 +1795,11 @@ def ensure_gowa():
                 return True
             WA["planned_until"] = time.time() + 90  # as oscilações dos próximos segundos são esperadas, não são queda
             wa_event("gateway_reiniciado", "configuração nova: reinício planejado")
-            for pid in subprocess.run(["pgrep", "-f", GOWA_BIN + " rest"], capture_output=True, text=True).stdout.split():
-                try:
-                    os.kill(int(pid), 15)
-                except (OSError, ValueError):
-                    pass
+            for pid in plataforma.pids_of(GOWA_BIN, "rest"):
+                plataforma.terminate(pid)
+            if plataforma.WINDOWS:  # o gateway antigo, renomeado por uma atualização, também precisa sair
+                for pid in plataforma.pids_of(GOWA_BIN + ".old", "rest"):
+                    plataforma.terminate(pid)
             for _ in range(15):
                 time.sleep(1)
                 if not gowa_req("GET", "/devices", timeout=2)[0]:
@@ -2047,10 +2061,10 @@ class H(BaseHTTPRequestHandler):
             rel = p[len("/diagnostico/"):]
             base = os.path.join(ROOT, "web", "brand") if rel.startswith("_assets/") else DIAG_DIR
             rel = rel[len("_assets/"):] if rel.startswith("_assets/") else rel
-            path = os.path.realpath(os.path.join(base, rel))
-            if os.path.isdir(path):
+            path = plataforma.safe_path(base, rel)
+            if path and os.path.isdir(path):
                 path = os.path.join(path, "index.html")
-            if not path.startswith(os.path.realpath(base)) or not os.path.isfile(path):
+            if not path or not os.path.isfile(path):
                 return self.send(404, {"error": "não encontrado"})
             with open(path, "rb") as fh:
                 return self.send(200, fh.read(), MIME.get(os.path.splitext(path)[1], "application/octet-stream"))
@@ -2083,8 +2097,8 @@ class H(BaseHTTPRequestHandler):
             return self.export(qs)
         # estáticos
         f = "index.html" if p in ("/", "") else p.lstrip("/")
-        path = os.path.realpath(os.path.join(WEB, f))
-        if not path.startswith(os.path.realpath(WEB)) or not os.path.isfile(path):
+        path = plataforma.safe_path(WEB, f)
+        if not path or not os.path.isfile(path):
             return self.send(404, {"error": "não encontrado"})
         with open(path, "rb") as fh:
             return self.send(200, fh.read(), MIME.get(os.path.splitext(path)[1], "application/octet-stream"))
@@ -2279,7 +2293,7 @@ class H(BaseHTTPRequestHandler):
             if not UPDATE["git"] or UPDATE["behind"] < 1:
                 return self.send(409, {"error": "não há atualização disponível (ou o Garimpo não foi instalado com git clone)"})
             if UPDATE["dirty"]:
-                return self.send(409, {"error": "você alterou arquivos do Garimpo. Atualize pelo terminal: git pull"})
+                return self.send(409, {"error": "esta cópia tem alterações próprias, então a atualização automática está desligada"})
             if UPDATE["busy"]:
                 return self.send(409, {"error": "já está atualizando"})
             threading.Thread(target=update_apply, daemon=True).start()
@@ -2412,6 +2426,9 @@ def rescore():
 
 
 class QuietServer(ThreadingHTTPServer):
+    # No Windows, reusar o endereço deixaria dois Garimpos na mesma porta, e a fila de mensagens dispararia em dobro.
+    allow_reuse_address = not plataforma.WINDOWS
+
     def handle_error(self, request, client_address):
         et = sys.exc_info()[0]
         if et and issubclass(et, (ConnectionResetError, BrokenPipeError, ConnectionAbortedError)):
@@ -2419,7 +2436,25 @@ class QuietServer(ThreadingHTTPServer):
         super().handle_error(request, client_address)
 
 
+def open_server():
+    """Reserva a porta antes de ligar qualquer thread. Depois de uma atualização, espera a versão antiga sair."""
+    tries = 30 if os.environ.pop("GARIMPO_WAIT_PORT", "") else 1
+    for left in range(tries - 1, -1, -1):
+        try:
+            return QuietServer(("127.0.0.1", PORT), H)
+        except OSError:
+            if not left:
+                return None
+            time.sleep(0.5)
+
+
 def main():
+    plataforma.utf8_console()
+    srv = open_server()
+    if not srv:
+        if os.environ.get("GARIMPO_OPEN") == "1":
+            webbrowser.open(LOCAL_URL)
+        sys.exit(f"A porta {PORT} já está em uso. O Garimpo já está aberto? Veja em {LOCAL_URL}")
     rescore()
     threading.Thread(target=poller, daemon=True).start()
     threading.Thread(target=queue_worker, daemon=True).start()
@@ -2430,10 +2465,9 @@ def main():
     threading.Thread(target=ensure_engine, daemon=True).start()
     threading.Thread(target=update_watch, daemon=True).start()
     if os.environ.get("GARIMPO_OPEN") == "1":
-        threading.Timer(1.5, lambda: webbrowser.open(f"http://localhost:{PORT}")).start()
-    srv = QuietServer(("127.0.0.1", PORT), H)
+        threading.Timer(1.5, lambda: webbrowser.open(LOCAL_URL)).start()
     srv.daemon_threads = True
-    log(f"GARIMPO no ar → http://localhost:{PORT}")
+    log(f"GARIMPO no ar → {LOCAL_URL}")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
